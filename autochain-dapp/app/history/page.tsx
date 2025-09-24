@@ -1,150 +1,129 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navigation } from "@/components/navigation"
-import { BlockchainStatus } from "@/components/blockchain-status"
-import { EventsFeed } from "@/components/events-feed"
-import { LoadingSpinner } from "@/components/loading-spinner"
+import { Search, History, Car, User, Calendar, ExternalLink, Shield } from "lucide-react"
 import { useWeb3 } from "@/hooks/use-web3"
-import { useAutoChain } from "@/hooks/use-autochain"
-import { useContractEvents } from "@/hooks/use-contract-events"
-import { formatEther } from "@/lib/web3"
-import { 
-  Search, 
-  History, 
-  Car as CarIcon, 
-  User, 
-  Calendar, 
-  ExternalLink, 
-  Shield,
-  Clock,
-  TrendingUp,
-  TrendingDown,
-  Plus,
-  Wallet,
-  Filter
-} from "lucide-react"
-import Link from "next/link"
 
 interface HistoryEntry {
   id: string
   carId: number
   carInfo: {
-    marque: string
-    modele: string
+    brand: string
+    model: string
     vin: string
   }
-  action: "created" | "sold" | "purchased" | "listed"
+  action: "created" | "sold" | "purchased"
   from: string
   to: string
-  prix?: string
+  price?: string
   timestamp: number
   transactionHash: string
   blockNumber: number
 }
 
 export default function HistoryPage() {
-  const { isConnected, account, connect } = useWeb3()
-  const { 
-    service, 
-    userCars, 
-    carsForSale, 
-    isLoading, 
-    refreshUserData 
-  } = useAutoChain()
-  
-  // Initialisation des événements de contrat
-  useContractEvents()
-  
+  const { account, contract, isConnected } = useWeb3()
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterAction, setFilterAction] = useState<string>("all")
 
-  // Simuler les données d'historique pour la démo
   useEffect(() => {
-    if (isConnected && account) {
+    if (contract) {
+      loadHistory()
+    }
+  }, [contract])
+
+  useEffect(() => {
+    filterHistory()
+  }, [history, searchTerm, filterAction])
+
+  const loadHistory = async () => {
+    try {
+      setLoading(true)
+      // Simuler les données d'historique pour la démo
       const mockHistory: HistoryEntry[] = [
         {
           id: "1",
           carId: 1,
-          carInfo: {
-            marque: "Tesla",
-            modele: "Model S",
-            vin: "1HGBH41JXMN109186"
-          },
+          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
           action: "created",
           from: "0x0000000000000000000000000000000000000000",
-          to: account,
-          timestamp: Date.now() - 86400000, // 1 jour
-          transactionHash: "0x1234567890abcdef1234567890abcdef12345678",
-          blockNumber: 12345
+          to: "0x123...BMW",
+          timestamp: Date.now() - 86400000 * 365,
+          transactionHash: "0xabc123...",
+          blockNumber: 18500000,
         },
         {
           id: "2",
           carId: 1,
-          carInfo: {
-            marque: "Tesla",
-            modele: "Model S",
-            vin: "1HGBH41JXMN109186"
-          },
-          action: "listed",
-          from: account,
-          to: "0x0000000000000000000000000000000000000000",
-          prix: "45000000000000000000000",
-          timestamp: Date.now() - 43200000, // 12 heures
-          transactionHash: "0x2345678901bcdef12345678901bcdef123456789",
-          blockNumber: 12350
+          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
+          action: "sold",
+          from: "0x123...BMW",
+          to: "0x456...Dealer",
+          price: "50.0",
+          timestamp: Date.now() - 86400000 * 180,
+          transactionHash: "0xdef456...",
+          blockNumber: 18600000,
         },
         {
           id: "3",
           carId: 2,
-          carInfo: {
-            marque: "BMW",
-            modele: "i8",
-            vin: "2HGBH41JXMN109187"
-          },
+          carInfo: { brand: "Mercedes", model: "C-Class", vin: "WDD2050461F123456" },
+          action: "created",
+          from: "0x0000000000000000000000000000000000000000",
+          to: "0x789...Mercedes",
+          timestamp: Date.now() - 86400000 * 200,
+          transactionHash: "0x789ghi...",
+          blockNumber: 18580000,
+        },
+        {
+          id: "4",
+          carId: 1,
+          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
           action: "purchased",
-          from: "0x8ba1f109551bD432803012645Hac189451c4",
-          to: account,
-          prix: "38000000000000000000000",
-          timestamp: Date.now() - 21600000, // 6 heures
-          transactionHash: "0x3456789012cdef123456789012cdef1234567890",
-          blockNumber: 12355
-        }
+          from: "0x456...Dealer",
+          to: "0x742d35Cc6634C0532925a3b8D4C9db96590b5",
+          price: "45.5",
+          timestamp: Date.now() - 86400000 * 30,
+          transactionHash: "0x123abc...",
+          blockNumber: 18700000,
+        },
       ]
-      
       setHistory(mockHistory)
+    } catch (error) {
+      console.error("Erreur lors du chargement de l'historique:", error)
+    } finally {
+      setLoading(false)
     }
-  }, [isConnected, account])
+  }
 
-  // Filtrage de l'historique
-  useEffect(() => {
+  const filterHistory = () => {
     let filtered = history
 
+    // Filtrer par terme de recherche
     if (searchTerm) {
-      filtered = filtered.filter(entry =>
-        entry.carInfo.marque.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.carInfo.modele.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.carInfo.vin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.transactionHash.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (entry) =>
+          entry.carInfo.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.carInfo.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.carInfo.vin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.transactionHash.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
+    // Filtrer par action
     if (filterAction !== "all") {
-      filtered = filtered.filter(entry => entry.action === filterAction)
+      filtered = filtered.filter((entry) => entry.action === filterAction)
     }
 
-    // Trier par timestamp décroissant
-    filtered.sort((a, b) => b.timestamp - a.timestamp)
-
     setFilteredHistory(filtered)
-  }, [history, searchTerm, filterAction])
+  }
 
   const getActionIcon = (action: string) => {
     switch (action) {

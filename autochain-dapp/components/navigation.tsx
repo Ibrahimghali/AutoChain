@@ -2,34 +2,38 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useWeb3 } from "@/hooks/use-web3"
-import { useAutoChain } from "@/hooks/use-autochain"
 import { Car, Home, Plus, ShoppingCart, History, Wallet, Menu, X } from "lucide-react"
 
-export function Navigation() {
-  const pathname = usePathname()
-  const { isConnected, account, userRole, connect } = useWeb3()
-  const { canCreateCar } = useAutoChain()
+interface NavigationProps {
+  currentPath?: string
+  userRole?: "constructor" | "user" | null
+  isConnected?: boolean
+  onConnectWallet?: () => void
+}
+
+export function Navigation({
+  currentPath = "/",
+  userRole = null,
+  isConnected = false,
+  onConnectWallet,
+}: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigationItems = [
     { href: "/", label: "Accueil", icon: Home, show: true },
     { href: "/dashboard", label: "Tableau de bord", icon: Car, show: isConnected },
-    { href: "/create-car", label: "Créer véhicule", icon: Plus, show: canCreateCar },
+    { href: "/create-car", label: "Créer véhicule", icon: Plus, show: userRole === "constructor" },
+    {
+      href: "/sell-car",
+      label: "Vendre",
+      icon: ShoppingCart,
+      show: isConnected,
+    },
     { href: "/buy-car", label: "Acheter", icon: ShoppingCart, show: isConnected },
     { href: "/history", label: "Historique", icon: History, show: isConnected },
   ]
-
-  const handleConnect = async () => {
-    try {
-      await connect()
-    } catch (error) {
-      console.error("Erreur de connexion:", error)
-    }
-  }
 
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -50,7 +54,7 @@ export function Navigation() {
               .map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Button
-                    variant={pathname === item.href ? "default" : "ghost"}
+                    variant={currentPath === item.href ? "default" : "ghost"}
                     size="sm"
                     className="flex items-center space-x-2"
                   >
@@ -66,16 +70,15 @@ export function Navigation() {
             {isConnected ? (
               <Card className="px-3 py-2 bg-primary/10 border-primary/20">
                 <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
                   <span className="text-sm font-mono text-muted-foreground">
                     {userRole === "constructor" && "Constructeur"}
                     {userRole === "user" && "Utilisateur"}
-                    {account && ` • ${account.slice(0, 6)}...${account.slice(-4)}`}
                   </span>
                 </div>
               </Card>
             ) : (
-              <Button onClick={handleConnect} className="flex items-center space-x-2">
+              <Button onClick={onConnectWallet} className="flex items-center space-x-2">
                 <Wallet className="w-4 h-4" />
                 <span>Connecter MetaMask</span>
               </Button>
@@ -102,7 +105,7 @@ export function Navigation() {
                 .map((item) => (
                   <Link key={item.href} href={item.href}>
                     <Button
-                      variant={pathname === item.href ? "default" : "ghost"}
+                      variant={currentPath === item.href ? "default" : "ghost"}
                       size="sm"
                       className="w-full justify-start flex items-center space-x-2"
                       onClick={() => setIsMobileMenuOpen(false)}
