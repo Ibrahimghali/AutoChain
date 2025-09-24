@@ -153,13 +153,13 @@ export default function HomePage() {
                   <span>{isLoading ? "Connexion..." : "Connecter MetaMask"}</span>
                 </Button>
               ) : (
-                <Button size="lg" asChild className="glow-effect">
-                  <Link href="/dashboard" className="flex items-center space-x-2">
+                <Link href="/dashboard">
+                  <Button size="lg" className="glow-effect flex items-center space-x-2">
                     <Car className="w-5 h-5" />
                     <span>Accéder au Tableau de Bord</span>
                     <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               )}
               <Button variant="outline" size="lg" asChild>
                 <a href="#features">En savoir plus</a>
@@ -304,13 +304,13 @@ export default function HomePage() {
               <span>{isLoading ? "Connexion en cours..." : "Commencer maintenant"}</span>
             </Button>
           ) : (
-            <Button size="lg" asChild className="glow-effect">
-              <Link href="/dashboard" className="flex items-center space-x-2">
+            <Link href="/dashboard">
+              <Button size="lg" className="glow-effect flex items-center space-x-2">
                 <Car className="w-5 h-5" />
                 <span>Accéder à votre tableau de bord</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           )}
         </div>
       </section>
