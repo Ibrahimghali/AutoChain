@@ -59,7 +59,7 @@ export default function CreateCarPage() {
     try {
       console.log("[v0] Création du véhicule:", formData)
 
-      const carId = await createNewCar(formData.vin, formData.marque, formData.modele)
+      const carId = await createNewCar(formData)
 
       toast({
         title: "Véhicule créé avec succès !",

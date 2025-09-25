@@ -6,108 +6,118 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Car, Calendar, User, Shield, DollarSign, History, ExternalLink } from "lucide-react"
+import { ArrowLeft, Car, Calendar, User, Shield, DollarSign, History, ExternalLink, AlertCircle } from "lucide-react"
 import { useWeb3 } from "@/hooks/use-web3"
+import { useCars } from "@/hooks/use-cars"
+import { useBlockchainError } from "@/hooks/use-blockchain-error"
+import { useToast } from "@/hooks/use-toast"
+import { formatEther } from "@/lib/web3"
 
-interface CarDetails {
-  id: number
-  vin: string
-  brand: string
-  model: string
-  year: number
-  color: string
-  mileage: number
-  isForSale: boolean
-  price: string
-  currentOwner: string
-  constructor: string
-  owners: Array<{
-    address: string
-    timestamp: number
-    transactionHash: string
-  }>
+interface CarOwnershipHistory {
+  address: string
+  timestamp: number
+  transactionHash: string
 }
 
 export default function CarDetailsPage() {
   const params = useParams()
   const router = useRouter()
-  const { account, contract, isConnected } = useWeb3()
-  const [car, setCar] = useState<CarDetails | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { account, isConnected, userRole } = useWeb3()
+  const { getCarById, purchaseCar, isLoading } = useCars()
+  const { handleError } = useBlockchainError()
+  const { toast } = useToast()
+  
+  const [car, setCar] = useState<Car | null>(null)
+  const [loadingCar, setLoadingCar] = useState(true)
   const [purchasing, setPurchasing] = useState(false)
+  const [carHistory, setCarHistory] = useState<CarOwnershipHistory[]>([])
 
   const carId = params.id as string
 
   useEffect(() => {
-    if (contract && carId) {
+    if (carId) {
       loadCarDetails()
     }
-  }, [contract, carId])
+  }, [carId])
 
   const loadCarDetails = async () => {
     try {
-      setLoading(true)
-      // Simuler les données pour la démo
-      const mockCar: CarDetails = {
-        id: Number.parseInt(carId),
-        vin: "WBA3A5G59DNP26082",
-        brand: "BMW",
-        model: "X5",
-        year: 2023,
-        color: "Noir Métallisé",
-        mileage: 15000,
-        isForSale: true,
-        price: "45.5",
-        currentOwner: "0x742d35Cc6634C0532925a3b8D4C9db96590b5",
-        constructor: "0x123...BMW",
-        owners: [
-          {
-            address: "0x123...BMW",
-            timestamp: Date.now() - 86400000 * 365,
-            transactionHash: "0xabc123...",
-          },
-          {
-            address: "0x456...Dealer",
-            timestamp: Date.now() - 86400000 * 180,
-            transactionHash: "0xdef456...",
-          },
-          {
-            address: "0x742d35Cc6634C0532925a3b8D4C9db96590b5",
-            timestamp: Date.now() - 86400000 * 30,
-            transactionHash: "0x789ghi...",
-          },
-        ],
+      setLoadingCar(true)
+      const carData = await getCarById(BigInt(carId))
+      
+      if (!carData) {
+        setCar(null)
+        return
       }
-      setCar(mockCar)
+
+      setCar(carData)
+      
+      // Simuler l'historique pour la démo (sera remplacé par la vraie fonction du contrat)
+      const mockHistory: CarOwnershipHistory[] = [
+        {
+          address: carData.constructeur,
+          timestamp: Date.now() - 86400000 * 365,
+          transactionHash: "0xabc123...",
+        },
+        {
+          address: carData.proprietaire,
+          timestamp: Date.now() - 86400000 * 30,
+          transactionHash: "0x789ghi...",
+        },
+      ]
+      setCarHistory(mockHistory)
+      
     } catch (error) {
       console.error("Erreur lors du chargement des détails:", error)
+      handleError(error as Error)
+      setCar(null)
     } finally {
-      setLoading(false)
+      setLoadingCar(false)
     }
   }
 
   const handlePurchase = async () => {
-    if (!contract || !car) return
+    if (!car) return
 
     try {
       setPurchasing(true)
-      // Logique d'achat via smart contract
-      console.log("[v0] Achat du véhicule:", car.id)
-      // await contract.buyCar(car.id, { value: ethers.utils.parseEther(car.price) })
-
-      // Simuler la transaction
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await purchaseCar(car.id)
+      
+      toast({
+        title: "Achat réussi !",
+        description: `Vous êtes maintenant propriétaire de ${car.marque} ${car.modele}`,
+      })
 
       // Rediriger vers le dashboard après achat
       router.push("/dashboard")
     } catch (error) {
       console.error("Erreur lors de l'achat:", error)
+      // L'erreur est déjà gérée par le hook useBlockchainError
     } finally {
       setPurchasing(false)
     }
   }
 
-  if (loading) {
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Connexion requise</h1>
+          <p className="text-muted-foreground mb-8">
+            Connectez-vous avec MetaMask pour voir les détails du véhicule.
+          </p>
+          <Button onClick={() => router.push("/")}>
+            Retour à l'accueil
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadingCar || isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
@@ -131,7 +141,13 @@ export default function CarDetailsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Car className="w-8 h-8 text-destructive" />
+          </div>
           <h1 className="text-2xl font-bold mb-4">Véhicule non trouvé</h1>
+          <p className="text-muted-foreground mb-6">
+            Le véhicule avec l'ID #{carId} n'existe pas ou n'est pas accessible.
+          </p>
           <Button onClick={() => router.push("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour au tableau de bord

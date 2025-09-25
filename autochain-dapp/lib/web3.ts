@@ -51,8 +51,17 @@ export const CONTRACT_ABI = [
   "function nextCarId() view returns (uint)",
 ]
 
-// Adresse du contrat déployé (à remplacer par l'adresse réelle)
-export const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3" // Adresse par défaut Ganache
+// Configuration du contrat
+// Cette adresse sera mise à jour automatiquement ou manuellement après déploiement
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+
+// Configuration du réseau
+export const NETWORK_CONFIG = {
+  chainId: "0x539", // 1337 en décimal (Ganache default)
+  chainName: "Ganache Local",
+  rpcUrl: "http://127.0.0.1:7545",
+  blockExplorerUrl: null,
+}
 
 declare global {
   interface Window {
@@ -66,6 +75,9 @@ export async function connectWallet(): Promise<Web3State> {
   }
 
   try {
+    // Vérifier et basculer vers le bon réseau
+    await switchToLocalNetwork()
+
     // Demander la connexion à MetaMask
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts",
@@ -81,11 +93,21 @@ export async function connectWallet(): Promise<Web3State> {
     const provider = new ethers.BrowserProvider(window.ethereum)
     const signer = await provider.getSigner()
 
+    // Vérifier que le contrat existe à cette adresse
+    const contractCode = await provider.getCode(CONTRACT_ADDRESS)
+    if (contractCode === "0x") {
+      throw new Error(
+        `Smart contract non trouvé à l'adresse ${CONTRACT_ADDRESS}. Vérifiez que le contrat est déployé.`
+      )
+    }
+
     // Créer l'instance du contrat
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)
 
     // Détecter le rôle de l'utilisateur
     const userRole = await detectUserRole(account, contract)
+
+    console.log(`Connexion réussie - Compte: ${account}, Rôle: ${userRole}`)
 
     return {
       isConnected: true,
@@ -373,7 +395,7 @@ export async function switchToLocalNetwork(): Promise<void> {
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x539" }], // Ganache default chain ID (1337)
+      params: [{ chainId: NETWORK_CONFIG.chainId }],
     })
   } catch (error: any) {
     // Si le réseau n'est pas ajouté, le proposer
@@ -382,18 +404,33 @@ export async function switchToLocalNetwork(): Promise<void> {
         method: "wallet_addEthereumChain",
         params: [
           {
-            chainId: "0x539",
-            chainName: "Ganache Local",
+            chainId: NETWORK_CONFIG.chainId,
+            chainName: NETWORK_CONFIG.chainName,
             nativeCurrency: {
               name: "Ether",
               symbol: "ETH",
               decimals: 18,
             },
-            rpcUrls: ["http://127.0.0.1:7545"],
-            blockExplorerUrls: null,
+            rpcUrls: [NETWORK_CONFIG.rpcUrl],
+            blockExplorerUrls: NETWORK_CONFIG.blockExplorerUrl ? [NETWORK_CONFIG.blockExplorerUrl] : null,
           },
         ],
       })
+    } else {
+      throw error
     }
+  }
+}
+
+// Vérifier si on est sur le bon réseau
+export async function isOnCorrectNetwork(): Promise<boolean> {
+  if (!window.ethereum) return false
+
+  try {
+    const chainId = await window.ethereum.request({ method: "eth_chainId" })
+    return chainId === NETWORK_CONFIG.chainId
+  } catch (error) {
+    console.error("Erreur lors de la vérification du réseau:", error)
+    return false
   }
 }
