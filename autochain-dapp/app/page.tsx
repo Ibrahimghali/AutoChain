@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Navigation } from "@/components/navigation"
-import { connectWallet, type Web3State } from "@/lib/web3"
+import { BlockchainStatus } from "@/components/blockchain-status"
+import { useWeb3 } from "@/hooks/use-web3"
 import {
   Car,
   Shield,
@@ -21,27 +21,7 @@ import {
 } from "lucide-react"
 
 export default function HomePage() {
-  const [web3State, setWeb3State] = useState<Web3State>({
-    isConnected: false,
-    account: null,
-    userRole: null,
-    contract: null,
-    web3: null,
-  })
-  const [isConnecting, setIsConnecting] = useState(false)
-
-  const handleConnectWallet = async () => {
-    setIsConnecting(true)
-    try {
-      const newState = await connectWallet()
-      setWeb3State(newState)
-    } catch (error) {
-      console.error("Erreur de connexion:", error)
-      alert("Erreur de connexion à MetaMask. Assurez-vous qu'il est installé et déverrouillé.")
-    } finally {
-      setIsConnecting(false)
-    }
-  }
+  const { isConnected, userRole, connect, isLoading, error } = useWeb3()
 
   const features = [
     {
@@ -88,12 +68,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        currentPath="/"
-        userRole={web3State.userRole}
-        isConnected={web3State.isConnected}
-        onConnectWallet={handleConnectWallet}
-      />
+      <Navigation currentPath="/" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -114,15 +89,15 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {!web3State.isConnected ? (
+              {!isConnected ? (
                 <Button
                   size="lg"
-                  onClick={handleConnectWallet}
-                  disabled={isConnecting}
+                  onClick={connect}
+                  disabled={isLoading}
                   className="flex items-center space-x-2 glow-effect"
                 >
                   <Wallet className="w-5 h-5" />
-                  <span>{isConnecting ? "Connexion..." : "Connecter MetaMask"}</span>
+                  <span>{isLoading ? "Connexion..." : "Connecter MetaMask"}</span>
                 </Button>
               ) : (
                 <Button size="lg" asChild className="glow-effect">
@@ -136,6 +111,16 @@ export default function HomePage() {
               <Button variant="outline" size="lg" asChild>
                 <a href="#features">En savoir plus</a>
               </Button>
+            </div>
+
+            <div className="mt-8 max-w-md mx-auto">
+              <BlockchainStatus
+                isConnected={isConnected}
+                account={useWeb3().account}
+                userRole={userRole}
+                error={error}
+                onConnect={connect}
+              />
             </div>
           </div>
         </div>
@@ -254,15 +239,15 @@ export default function HomePage() {
           <p className="text-xl text-muted-foreground text-pretty mb-8">
             Rejoignez la communauté AutoChain et découvrez une nouvelle façon de vendre et d'acheter des véhicules.
           </p>
-          {!web3State.isConnected ? (
+          {!isConnected ? (
             <Button
               size="lg"
-              onClick={handleConnectWallet}
-              disabled={isConnecting}
+              onClick={connect}
+              disabled={isLoading}
               className="flex items-center space-x-2 glow-effect mx-auto"
             >
               <Wallet className="w-5 h-5" />
-              <span>{isConnecting ? "Connexion en cours..." : "Commencer maintenant"}</span>
+              <span>{isLoading ? "Connexion en cours..." : "Commencer maintenant"}</span>
             </Button>
           ) : (
             <Button size="lg" asChild className="glow-effect">
