@@ -6,85 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
 import { CarCard } from "@/components/car-card"
 import { StatsOverview } from "@/components/stats-overview"
-import { connectWallet, type Web3State, type Car } from "@/lib/web3"
+import { useWeb3 } from "@/hooks/use-web3"
+import { useCars } from "@/hooks/use-cars"
 import { Search, Plus, CarIcon, ShoppingCart } from "lucide-react"
 
 export default function DashboardPage() {
-  const [web3State, setWeb3State] = useState<Web3State>({
-    isConnected: false,
-    account: null,
-    userRole: null,
-    contract: null,
-    web3: null,
-  })
-  const [cars, setCars] = useState<Car[]>([])
-  const [filteredCars, setFilteredCars] = useState<Car[]>([])
+  const { isConnected, account, userRole, connect, isLoading: web3Loading, error } = useWeb3()
+  const { cars, userCars, carsForSale, isLoading: carsLoading, error: carsError } = useCars()
+
+  const [filteredCars, setFilteredCars] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "for-sale" | "owned">("all")
-  const [isLoading, setIsLoading] = useState(true)
-
-  // Données de démonstration
-  const mockCars: Car[] = [
-    {
-      id: 1,
-      vin: "1HGBH41JXMN109186",
-      marque: "Tesla",
-      modele: "Model S",
-      enVente: true,
-      prix: "45000000000000000000000", // 45 ETH en Wei
-      proprietaires: ["0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4", "0x8ba1f109551bD432803012645Hac189451c4"],
-    },
-    {
-      id: 2,
-      vin: "2HGBH41JXMN109187",
-      marque: "BMW",
-      modele: "i8",
-      enVente: false,
-      prix: "0",
-      proprietaires: ["0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4"],
-    },
-    {
-      id: 3,
-      vin: "3HGBH41JXMN109188",
-      marque: "Audi",
-      modele: "e-tron GT",
-      enVente: true,
-      prix: "38000000000000000000000", // 38 ETH en Wei
-      proprietaires: ["0x8ba1f109551bD432803012645Hac189451c4"],
-    },
-    {
-      id: 4,
-      vin: "4HGBH41JXMN109189",
-      marque: "Mercedes",
-      modele: "EQS",
-      enVente: true,
-      prix: "52000000000000000000000", // 52 ETH en Wei
-      proprietaires: ["0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4", "0x9ca2f209661cE532814023756Iac289562d5"],
-    },
-  ]
-
-  useEffect(() => {
-    // Simuler la connexion automatique si MetaMask est déjà connecté
-    const initializeWeb3 = async () => {
-      try {
-        if (typeof window !== "undefined" && window.ethereum) {
-          const accounts = await window.ethereum.request({ method: "eth_accounts" })
-          if (accounts.length > 0) {
-            const state = await connectWallet()
-            setWeb3State(state)
-          }
-        }
-      } catch (error) {
-        console.error("Erreur d'initialisation:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initializeWeb3()
-    setCars(mockCars)
-    setFilteredCars(mockCars)
-  }, [])
 
   useEffect(() => {
     let filtered = cars
@@ -101,25 +33,15 @@ export default function DashboardPage() {
 
     // Filtrer par statut
     if (filterStatus === "for-sale") {
-      filtered = filtered.filter((car) => car.enVente)
-    } else if (filterStatus === "owned" && web3State.account) {
-      filtered = filtered.filter(
-        (car) => car.proprietaires[car.proprietaires.length - 1]?.toLowerCase() === web3State.account?.toLowerCase(),
-      )
+      filtered = carsForSale
+    } else if (filterStatus === "owned" && account) {
+      filtered = userCars
     }
 
     setFilteredCars(filtered)
-  }, [searchTerm, filterStatus, cars, web3State.account])
+  }, [searchTerm, filterStatus, cars, carsForSale, userCars, account])
 
-  const handleConnectWallet = async () => {
-    try {
-      const newState = await connectWallet()
-      setWeb3State(newState)
-    } catch (error) {
-      console.error("Erreur de connexion:", error)
-      alert("Erreur de connexion à MetaMask")
-    }
-  }
+  const isLoading = web3Loading || carsLoading
 
   if (isLoading) {
     return (
@@ -132,15 +54,10 @@ export default function DashboardPage() {
     )
   }
 
-  if (!web3State.isConnected) {
+  if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation
-          currentPath="/dashboard"
-          userRole={web3State.userRole}
-          isConnected={web3State.isConnected}
-          onConnectWallet={handleConnectWallet}
-        />
+        <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CarIcon className="w-8 h-8 text-primary" />
@@ -149,8 +66,26 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mb-8">
             Connectez votre portefeuille MetaMask pour accéder au tableau de bord AutoChain.
           </p>
-          <Button onClick={handleConnectWallet} size="lg" className="glow-effect">
+          <Button onClick={connect} size="lg" className="glow-effect">
             Connecter MetaMask
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || carsError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CarIcon className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Erreur de connexion blockchain</h1>
+          <p className="text-muted-foreground mb-8">{error || carsError}</p>
+          <Button onClick={() => window.location.reload()} size="lg">
+            Réessayer
           </Button>
         </div>
       </div>
@@ -159,12 +94,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        currentPath="/dashboard"
-        userRole={web3State.userRole}
-        isConnected={web3State.isConnected}
-        onConnectWallet={handleConnectWallet}
-      />
+      <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -173,13 +103,12 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-3xl font-bold text-balance mb-2">Tableau de bord</h1>
               <p className="text-muted-foreground">
-                Bienvenue {web3State.userRole === "constructor" && "Constructeur"}
-                {web3State.userRole === "seller" && "Vendeur"}
-                {web3State.userRole === "buyer" && "Acheteur"}
+                Bienvenue {userRole === "constructor" && "Constructeur"}
+                {userRole === "user" && "Utilisateur"}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
-              {web3State.userRole === "constructor" && (
+              {userRole === "constructor" && (
                 <Button asChild className="flex items-center space-x-2">
                   <a href="/create-car">
                     <Plus className="w-4 h-4" />
@@ -187,19 +116,17 @@ export default function DashboardPage() {
                   </a>
                 </Button>
               )}
-              {(web3State.userRole === "seller" || web3State.userRole === "constructor") && (
-                <Button variant="outline" asChild className="flex items-center space-x-2 bg-transparent">
-                  <a href="/sell-car">
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Vendre</span>
-                  </a>
-                </Button>
-              )}
+              <Button variant="outline" asChild className="flex items-center space-x-2 bg-transparent">
+                <a href="/sell-car">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Vendre</span>
+                </a>
+              </Button>
             </div>
           </div>
 
           {/* Stats Overview */}
-          <StatsOverview userRole={web3State.userRole} cars={cars} userAccount={web3State.account} />
+          <StatsOverview userRole={userRole} cars={cars} userAccount={account} />
         </div>
 
         {/* Search and Filters */}
@@ -220,21 +147,21 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={() => setFilterStatus("all")}
               >
-                Tous
+                Tous ({cars.length})
               </Button>
               <Button
                 variant={filterStatus === "for-sale" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilterStatus("for-sale")}
               >
-                En vente
+                En vente ({carsForSale.length})
               </Button>
               <Button
                 variant={filterStatus === "owned" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilterStatus("owned")}
               >
-                Mes véhicules
+                Mes véhicules ({userCars.length})
               </Button>
             </div>
           </div>
@@ -246,11 +173,10 @@ export default function DashboardPage() {
             <CarCard
               key={car.id}
               car={car}
-              userRole={web3State.userRole}
-              userAccount={web3State.account}
+              userRole={userRole}
+              userAccount={account}
               onAction={(action, carId) => {
                 console.log(`Action ${action} sur véhicule ${carId}`)
-                // Ici, on appellerait les fonctions du smart contract
               }}
             />
           ))}
@@ -267,7 +193,7 @@ export default function DashboardPage() {
                 ? "Essayez de modifier vos critères de recherche."
                 : "Il n'y a pas encore de véhicules disponibles."}
             </p>
-            {web3State.userRole === "constructor" && (
+            {userRole === "constructor" && (
               <Button asChild>
                 <a href="/create-car">Créer le premier véhicule</a>
               </Button>
