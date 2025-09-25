@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useWeb3 } from "@/hooks/use-web3"
@@ -11,17 +11,20 @@ import { Car, Home, Plus, ShoppingCart, History, Wallet, Menu, X } from "lucide-
 
 export function Navigation() {
   const pathname = usePathname()
+  const router = useRouter()
   const { isConnected, account, userRole, connect } = useWeb3()
   const { canCreateCar } = useAutoChain()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigationItems = [
     { href: "/", label: "Accueil", icon: Home, show: true },
-    { href: "/dashboard", label: "Tableau de bord", icon: Car, show: isConnected },
+    { href: "/dashboard", label: "Tableau de bord", icon: Car, show: true }, // Temporarily always show
     { href: "/create-car", label: "Créer véhicule", icon: Plus, show: canCreateCar },
-    { href: "/buy-car", label: "Acheter", icon: ShoppingCart, show: isConnected },
-    { href: "/history", label: "Historique", icon: History, show: isConnected },
+    { href: "/buy-car", label: "Acheter", icon: ShoppingCart, show: true }, // Temporarily always show
+    { href: "/history", label: "Historique", icon: History, show: true }, // Temporarily always show
   ]
+
+  console.log("Navigation state:", { isConnected, account, userRole, canCreateCar })
 
   const handleConnect = async () => {
     try {
@@ -29,6 +32,11 @@ export function Navigation() {
     } catch (error) {
       console.error("Erreur de connexion:", error)
     }
+  }
+
+  const handleNavigation = (href: string) => {
+    setIsMobileMenuOpen(false)
+    router.push(href)
   }
 
   return (
@@ -48,16 +56,16 @@ export function Navigation() {
             {navigationItems
               .filter((item) => item.show)
               .map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={pathname === item.href ? "default" : "ghost"}
-                    size="sm"
-                    className="flex items-center space-x-2"
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </Button>
-                </Link>
+                <Button
+                  key={item.href}
+                  variant={pathname === item.href ? "default" : "ghost"}
+                  size="sm"
+                  className="flex items-center space-x-2"
+                  onClick={() => handleNavigation(item.href)}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </Button>
               ))}
           </div>
 
@@ -100,17 +108,16 @@ export function Navigation() {
               {navigationItems
                 .filter((item) => item.show)
                 .map((item) => (
-                  <Link key={item.href} href={item.href}>
-                    <Button
-                      variant={pathname === item.href ? "default" : "ghost"}
-                      size="sm"
-                      className="w-full justify-start flex items-center space-x-2"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </Button>
-                  </Link>
+                  <Button
+                    key={item.href}
+                    variant={pathname === item.href ? "default" : "ghost"}
+                    size="sm"
+                    className="w-full justify-start flex items-center space-x-2"
+                    onClick={() => handleNavigation(item.href)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Button>
                 ))}
             </div>
           </div>

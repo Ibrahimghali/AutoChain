@@ -26,6 +26,7 @@ export function useWeb3() {
         if (accounts.length > 0) {
           const state = await connectWallet()
           setWeb3State(state)
+          console.log("Web3 initialized with state:", { isConnected: state.isConnected, account: state.account, userRole: state.userRole })
 
           // Configurer les listeners d'événements
           if (state.contract) {
@@ -34,7 +35,11 @@ export function useWeb3() {
               // Ici, on pourrait mettre à jour l'état local ou déclencher des notifications
             })
           }
+        } else {
+          console.log("No accounts connected to MetaMask")
         }
+      } else {
+        console.log("MetaMask not detected")
       }
     } catch (err) {
       console.error("Erreur d'initialisation Web3:", err)
@@ -50,6 +55,7 @@ export function useWeb3() {
       setError(null)
       const state = await connectWallet()
       setWeb3State(state)
+      console.log("Connected to MetaMask with state:", { isConnected: state.isConnected, account: state.account, userRole: state.userRole })
 
       // Configurer les listeners d'événements
       if (state.contract) {
