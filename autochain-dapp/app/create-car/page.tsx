@@ -1,30 +1,41 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Navigation } from "@/components/navigation"
+import { BlockchainStatus } from "@/components/blockchain-status"
 import { useWeb3 } from "@/hooks/use-web3"
-import { useCars } from "@/hooks/use-cars"
-import { Plus, Shield, AlertCircle, CheckCircle } from "lucide-react"
+import { useAutoChain } from "@/hooks/use-autochain"
 import { useToast } from "@/hooks/use-toast"
+import { Plus, Shield, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function CreateCarPage() {
-  const { isConnected, userRole, connect, isLoading: web3Loading } = useWeb3()
-  const { createNewCar } = useCars()
+  const router = useRouter()
   const { toast } = useToast()
-
+  const { isConnected, account, userRole, connect } = useWeb3()
+  const { service, canCreateCar, refreshUserData } = useAutoChain()
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     vin: "",
     marque: "",
     modele: "",
+    annee: "",
+    couleur: "",
+    motorisation: "",
+    description: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [success, setSuccess] = useState<string | null>(null)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -43,6 +54,15 @@ export default function CreateCarPage() {
       newErrors.modele = "Le modèle est requis"
     }
 
+    if (!formData.annee.trim()) {
+      newErrors.annee = "L'année est requise"
+    } else if (
+      Number.parseInt(formData.annee) < 1900 ||
+      Number.parseInt(formData.annee) > new Date().getFullYear() + 1
+    ) {
+      newErrors.annee = "Année invalide"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -54,31 +74,92 @@ export default function CreateCarPage() {
       return
     }
 
+    if (!service || !canCreateCar) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être un constructeur certifié pour créer une voiture.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrors({})
+    setSuccess(null)
+
+    try {
+      const result = await service.createCar(formData.vin, formData.marque, formData.modele)
+      
+      if (result.success && result.carId) {
+        setSuccess(`Voiture créée avec succès ! ID: ${result.carId}`)
+        
+        // Réinitialiser le formulaire
+        setFormData({
+          vin: "",
+          marque: "",
+          modele: "",
+          annee: "",
+          couleur: "",
+          motorisation: "",
+          description: "",
+        })
+
+        // Rafraîchir les données utilisateur
+        await refreshUserData()
+
+        toast({
+          title: "Succès",
+          description: `Voiture créée avec l'ID ${result.carId}`,
+        })
+
+        // Rediriger vers le dashboard après un délai
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 2000)
+      } else {
+        setErrors({ submit: result.error || "Erreur lors de la création" })
+        toast({
+          title: "Erreur",
+          description: result.error || "Erreur lors de la création",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue"
+      setErrors({ submit: errorMessage })
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+
     setIsSubmitting(true)
 
     try {
-      console.log("[v0] Création du véhicule:", formData)
+      // Ici, on appellerait la fonction createCar du smart contract
+      console.log("Création du véhicule:", formData)
 
-      const carId = await createNewCar(formData)
+      // Simulation d'un appel au contrat
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      toast({
-        title: "Véhicule créé avec succès !",
-        description: `Le véhicule a été créé avec l'ID ${carId} et enregistré sur la blockchain.`,
-      })
+      alert("Véhicule créé avec succès !")
 
       // Réinitialiser le formulaire
       setFormData({
         vin: "",
         marque: "",
         modele: "",
+        annee: "",
+        couleur: "",
+        motorisation: "",
+        description: "",
       })
     } catch (error) {
-      console.error("[v0] Erreur lors de la création:", error)
-      toast({
-        title: "Erreur lors de la création",
-        description: error instanceof Error ? error.message : "Une erreur inconnue s'est produite",
-        variant: "destructive",
-      })
+      console.error("Erreur lors de la création:", error)
+      alert("Erreur lors de la création du véhicule")
     } finally {
       setIsSubmitting(false)
     }
@@ -91,21 +172,11 @@ export default function CreateCarPage() {
     }
   }
 
-  if (web3Loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isConnected || userRole !== "constructor") {
+  // Vérification des permissions
+  if (!isConnected || !canCreateCar) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation currentPath="/create-car" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+        <Navigation />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-destructive" />
@@ -115,10 +186,19 @@ export default function CreateCarPage() {
             Cette page est réservée aux constructeurs certifiés. Connectez-vous avec un compte constructeur pour
             continuer.
           </p>
-          {!isConnected && (
+          {!isConnected ? (
             <Button onClick={connect} size="lg">
               Connecter MetaMask
             </Button>
+          ) : (
+            <div>
+              <p className="text-muted-foreground mb-4">
+                Votre compte n'a pas les permissions nécessaires pour créer des véhicules.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/dashboard">Retour au tableau de bord</Link>
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -127,7 +207,8 @@ export default function CreateCarPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation currentPath="/create-car" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+      <Navigation />
+      <BlockchainStatus isConnected={isConnected} account={account} userRole={userRole} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -157,15 +238,34 @@ export default function CreateCarPage() {
           </Card>
         </div>
 
+        {/* Alertes de succès et d'erreur */}
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              {success}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {errors.submit && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {errors.submit}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Informations du véhicule</CardTitle>
-              <CardDescription>Renseignez les détails essentiels du véhicule</CardDescription>
+              <CardDescription>Renseignez les détails techniques du véhicule</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                   <Label htmlFor="vin">Numéro VIN *</Label>
                   <Input
                     id="vin"
@@ -201,18 +301,64 @@ export default function CreateCarPage() {
                   />
                   {errors.modele && <p className="text-sm text-destructive">{errors.modele}</p>}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="annee">Année *</Label>
+                  <Input
+                    id="annee"
+                    type="number"
+                    value={formData.annee}
+                    onChange={(e) => handleInputChange("annee", e.target.value)}
+                    placeholder="2024"
+                    min="1900"
+                    max={new Date().getFullYear() + 1}
+                    className={errors.annee ? "border-destructive" : ""}
+                  />
+                  {errors.annee && <p className="text-sm text-destructive">{errors.annee}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="couleur">Couleur</Label>
+                  <Input
+                    id="couleur"
+                    value={formData.couleur}
+                    onChange={(e) => handleInputChange("couleur", e.target.value)}
+                    placeholder="Noir métallisé"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="motorisation">Motorisation</Label>
+                  <Input
+                    id="motorisation"
+                    value={formData.motorisation}
+                    onChange={(e) => handleInputChange("motorisation", e.target.value)}
+                    placeholder="Électrique 100kWh"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  placeholder="Description détaillée du véhicule, équipements, options..."
+                  rows={4}
+                />
               </div>
             </CardContent>
           </Card>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-end">
-            <Button type="button" variant="outline" onClick={() => window.history.back()}>
-              Annuler
+            <Button type="button" variant="outline" asChild>
+              <Link href="/dashboard">Annuler</Link>
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="flex items-center space-x-2">
+            <Button type="submit" disabled={isSubmitting || !service} className="flex items-center space-x-2">
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Création en cours...</span>
                 </>
               ) : (

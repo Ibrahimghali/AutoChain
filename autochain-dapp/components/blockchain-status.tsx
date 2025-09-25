@@ -1,43 +1,96 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { shortenAddress } from "@/lib/web3"
-import { Wallet, AlertCircle, CheckCircle, ExternalLink } from "lucide-react"
+import { shortenAddress, getCurrentNetwork, getBalance } from "@/lib/web3"
+import { useWeb3 } from "@/hooks/use-web3"
+import { Wallet, AlertCircle, CheckCircle, ExternalLink, Copy, Network } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface BlockchainStatusProps {
   isConnected: boolean
   account: string | null
-  userRole: "constructor" | "seller" | "buyer" | null
+  userRole?: "constructor" | "user" | null
   error?: string | null
   onConnect?: () => void
 }
 
 export function BlockchainStatus({ isConnected, account, userRole, error, onConnect }: BlockchainStatusProps) {
-  const getRoleBadgeVariant = (role: string | null) => {
+  const { toast } = useToast()
+  const { web3 } = useWeb3()
+  const [networkInfo, setNetworkInfo] = useState<{ chainId: number; name: string; isSupported: boolean } | null>(null)
+  const [balance, setBalance] = useState<string>("0")
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+
+  // Charger les informations du réseau
+  useEffect(() => {
+    const loadNetworkInfo = async () => {
+      try {
+        const info = await getCurrentNetwork()
+        setNetworkInfo(info)
+      } catch (error) {
+        console.error("Erreur lors du chargement du réseau:", error)
+      }
+    }
+
+    if (isConnected) {
+      loadNetworkInfo()
+    }
+  }, [isConnected])
+
+  // Charger le solde du compte
+  useEffect(() => {
+    const loadBalance = async () => {
+      if (!web3 || !account) return
+
+      try {
+        setIsLoadingBalance(true)
+        const balance = await getBalance(web3, account)
+        setBalance(balance)
+      } catch (error) {
+        console.error("Erreur lors du chargement du solde:", error)
+      } finally {
+        setIsLoadingBalance(false)
+      }
+    }
+
+    if (isConnected && web3 && account) {
+      loadBalance()
+    }
+  }, [isConnected, web3, account])
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        title: "Copié",
+        description: "Adresse copiée dans le presse-papiers",
+      })
+    } catch (error) {
+      console.error("Erreur lors de la copie:", error)
+    }
+  }
+  const getRoleBadgeVariant = (role: string | null | undefined) => {
     switch (role) {
       case "constructor":
         return "default"
-      case "seller":
+      case "user":
         return "secondary"
-      case "buyer":
-        return "outline"
       default:
         return "outline"
     }
   }
 
-  const getRoleLabel = (role: string | null) => {
+  const getRoleLabel = (role: string | null | undefined) => {
     switch (role) {
       case "constructor":
         return "Constructeur Certifié"
-      case "seller":
-        return "Vendeur"
-      case "buyer":
-        return "Acheteur"
+      case "user":
+        return "Utilisateur"
       default:
-        return "Non défini"
+        return "Utilisateur"
     }
   }
 
@@ -87,12 +140,18 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
   }
 
   return (
-    <Card className="border-primary/50 bg-primary/5">
+    <Card className={`border-primary/50 ${networkInfo?.isSupported ? 'bg-primary/5' : 'bg-yellow-50 border-yellow-200'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Connecté à la Blockchain</CardTitle>
+            {networkInfo?.isSupported ? (
+              <CheckCircle className="w-5 h-5 text-primary" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+            )}
+            <CardTitle className="text-lg">
+              {networkInfo?.isSupported ? "Connecté à la Blockchain" : "Réseau non supporté"}
+            </CardTitle>
           </div>
           <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
         </div>
@@ -105,14 +164,45 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
               {account ? shortenAddress(account) : "N/A"}
             </code>
             {account && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open(`https://etherscan.io/address/${account}`, "_blank")}
-                className="h-6 w-6 p-0"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(account)}
+                  className="h-6 w-6 p-0"
+                  title="Copier l'adresse"
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const explorerUrl = networkInfo?.chainId === 1337 
+                      ? `#` // Pas d'explorateur pour Ganache local
+                      : `https://etherscan.io/address/${account}`
+                    if (networkInfo?.chainId !== 1337) {
+                      window.open(explorerUrl, "_blank")
+                    }
+                  }}
+                  className="h-6 w-6 p-0"
+                  title="Voir sur l'explorateur"
+                  disabled={networkInfo?.chainId === 1337}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Solde</span>
+          <div className="flex items-center space-x-1">
+            {isLoadingBalance ? (
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <span className="text-sm font-mono">{parseFloat(balance).toFixed(4)} ETH</span>
             )}
           </div>
         </div>
@@ -126,8 +216,26 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
 
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Réseau</span>
-          <span className="text-sm font-medium">Ethereum Mainnet</span>
+          <div className="flex items-center space-x-2">
+            <Network className="w-3 h-3 text-muted-foreground" />
+            <span className={`text-sm font-medium ${networkInfo?.isSupported ? '' : 'text-yellow-600'}`}>
+              {networkInfo?.name || "Chargement..."}
+            </span>
+            {networkInfo && !networkInfo.isSupported && (
+              <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300">
+                Non supporté
+              </Badge>
+            )}
+          </div>
         </div>
+
+        {networkInfo && !networkInfo.isSupported && (
+          <div className="pt-2 border-t border-yellow-200">
+            <p className="text-xs text-yellow-700 mb-2">
+              Ce réseau n'est pas supporté. Veuillez vous connecter à Ganache Local ou Sepolia Testnet.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

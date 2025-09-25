@@ -1,108 +1,131 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Navigation } from "@/components/navigation"
+import { BlockchainStatus } from "@/components/blockchain-status"
+import { EventsFeed } from "@/components/events-feed"
+import { CarCard } from "@/components/car-card"
+import { LoadingSpinner } from "@/components/loading-spinner"
 import { useWeb3 } from "@/hooks/use-web3"
-import { useCars } from "@/hooks/use-cars"
-import { formatEther, parseEther, shortenAddress, type Car } from "@/lib/web3"
-import { ShoppingCart, CarIcon, AlertCircle, Search, History, Users, DollarSign, RefreshCw } from "lucide-react"
+import { useAutoChain } from "@/hooks/use-autochain"
 import { useToast } from "@/hooks/use-toast"
+import { formatEther, type Car } from "@/lib/web3"
+import { ShoppingCart, CarIcon, AlertCircle, Search, History, Users, DollarSign, Loader2, Wallet } from "lucide-react"
+import Link from "next/link"
 
 export default function BuyCarPage() {
-  const { isConnected, userRole, account, connect, isLoading: web3Loading } = useWeb3()
-  const { 
-    carsForSale, 
-    isLoading: carsLoading, 
-    purchaseCar, 
-    canBuyCar, 
-    refreshAllData 
-  } = useCars()
   const { toast } = useToast()
-
+  const { isConnected, account, userRole, connect } = useWeb3()
+  const { 
+    service, 
+    carsForSale, 
+    isLoading, 
+    refreshCarsForSale, 
+    refreshUserData, 
+    canBuyCar 
+  } = useAutoChain()
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCar, setSelectedCar] = useState<Car | null>(null)
   const [isPurchasing, setIsPurchasing] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
-  const filteredCars = carsForSale.filter((car) =>
-    car.marque.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    car.modele.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    car.vin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    car.id.toString().includes(searchTerm)
+  // Filtrer les voitures selon la recherche
+  const filteredCars = carsForSale.filter(
+    (car) =>
+      car.marque.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      car.modele.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      car.vin.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const isLoading = web3Loading || carsLoading
-
-  const handlePurchase = async (car: Car) => {
+  const handlePurchaseClick = (car: Car) => {
     if (!canBuyCar(car)) {
       toast({
-        title: "Achat impossible",
-        description: "Vous ne pouvez pas acheter cette voiture",
+        title: "Impossible d'acheter",
+        description: "Vous ne pouvez pas acheter votre propre véhicule ou un véhicule non en vente.",
         variant: "destructive",
       })
       return
     }
+    
+    setSelectedCar(car)
+    setShowConfirmDialog(true)
+  }
+
+  const handleConfirmPurchase = async () => {
+    if (!selectedCar || !service) return
 
     setIsPurchasing(true)
-    setSelectedCar(car)
+    setShowConfirmDialog(false)
 
     try {
-      await purchaseCar(car.id, car.prix)
+      const result = await service.buyCar(selectedCar.id, selectedCar.prix)
       
-      toast({
-        title: "Achat réussi !",
-        description: `Félicitations ! Vous êtes maintenant propriétaire du ${car.marque} ${car.modele}`,
-      })
+      if (result.success) {
+        toast({
+          title: "Achat réussi !",
+          description: `Vous êtes maintenant propriétaire du véhicule ${selectedCar.marque} ${selectedCar.modele}`,
+        })
+        
+        // Rafraîchir les données
+        await Promise.all([
+          refreshCarsForSale(),
+          refreshUserData()
+        ])
+      } else {
+        toast({
+          title: "Erreur d'achat",
+          description: result.error || "Une erreur est survenue lors de l'achat",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
-      console.error("Erreur lors de l'achat:", error)
-      // L'erreur est déjà gérée par le hook useBlockchainError
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue"
+      toast({
+        title: "Erreur d'achat",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       setIsPurchasing(false)
       setSelectedCar(null)
     }
   }
 
-  const handleRefresh = async () => {
-    await refreshAllData()
-    toast({
-      title: "Données actualisées",
-      description: "La liste des voitures en vente a été mise à jour",
-    })
-  }
-
+  // Affichage en cas de chargement
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement...</p>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner />
         </div>
       </div>
     )
   }
 
+  // Affichage si non connecté
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation
-          currentPath="/buy-car"
-          userRole={userRole}
-          isConnected={isConnected}
-          onConnectWallet={connect}
-        />
+        <Navigation />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-8 h-8 text-destructive" />
+            <Wallet className="w-8 h-8 text-destructive" />
           </div>
           <h1 className="text-3xl font-bold mb-4">Connexion requise</h1>
           <p className="text-muted-foreground mb-8">
             Connectez votre portefeuille MetaMask pour acheter des véhicules.
           </p>
-          <Button onClick={connect} size="lg">
-            Connecter MetaMask
+          <Button onClick={connect} size="lg" className="flex items-center space-x-2">
+            <Wallet className="w-5 h-5" />
+            <span>Connecter MetaMask</span>
           </Button>
         </div>
       </div>
@@ -111,84 +134,41 @@ export default function BuyCarPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation
-        currentPath="/buy-car"
-        userRole={userRole}
-        isConnected={isConnected}
-        onConnectWallet={connect}
-      />
+      <Navigation />
+      <BlockchainStatus isConnected={isConnected} account={account} userRole={userRole} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6 text-accent" />
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Contenu principal */}
+          <div className="lg:col-span-3">
+            <div className="mb-8">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="w-6 h-6 text-accent" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">Acheter un véhicule</h1>
+                  <p className="text-muted-foreground">
+                    Découvrez les {carsForSale.length} véhicules certifiés disponibles
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold">Acheter un véhicule</h1>
-                <p className="text-muted-foreground">Découvrez les véhicules certifiés disponibles sur la blockchain</p>
+
+              {/* Barre de recherche */}
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par marque, modèle ou VIN..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-            <Button 
-              onClick={handleRefresh} 
-              variant="outline" 
-              disabled={isLoading}
-              className="flex items-center space-x-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Actualiser</span>
-            </Button>
-          </div>
 
-          {/* Search */}
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher par marque, modèle ou VIN..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {filteredCars.length} véhicule{filteredCars.length > 1 ? 's' : ''} en vente
-            </div>
-          </div>
-        </div>
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-muted rounded-lg" />
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded w-24" />
-                      <div className="h-3 bg-muted rounded w-16" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="h-16 bg-muted rounded" />
-                  <div className="h-10 bg-muted rounded" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Cars Grid */}
-        {!isLoading && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCars.map((car) => {
-              const currentOwner = car.proprietaires[car.proprietaires.length - 1]
-              const isOwnCar = currentOwner?.toLowerCase() === account?.toLowerCase()
-              
-              return (
+            {/* Grille des véhicules */}
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredCars.map((car) => (
                 <Card key={car.id} className="car-card-hover border-border/50 overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -201,7 +181,7 @@ export default function BuyCarPage() {
                             {car.marque} {car.modele}
                           </CardTitle>
                           <CardDescription className="font-mono text-xs">
-                            ID: {car.id} • VIN: {car.vin.slice(0, 8)}...
+                            VIN: {car.vin.slice(0, 8)}...
                           </CardDescription>
                         </div>
                       </div>
@@ -221,27 +201,15 @@ export default function BuyCarPage() {
                       <div className="text-right">
                         <div className="font-bold text-lg">{formatEther(car.prix)} ETH</div>
                         <div className="text-xs text-muted-foreground">
-                          ≈ ${(Number.parseFloat(formatEther(car.prix)) * 2500).toLocaleString()}
+                          ≈ ${(parseFloat(formatEther(car.prix)) * 2500).toLocaleString()}
                         </div>
                       </div>
                     </div>
 
-                    {/* Propriétaire actuel */}
+                    {/* Propriétaires */}
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Propriétaire</span>
-                      </div>
-                      <span className="font-mono text-xs">
-                        {shortenAddress(currentOwner)}
-                        {isOwnCar && " (Vous)"}
-                      </span>
-                    </div>
-
-                    {/* Historique */}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <History className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Propriétaires</span>
                       </div>
                       <span className="font-medium">{car.proprietaires.length}</span>
@@ -249,58 +217,140 @@ export default function BuyCarPage() {
 
                     {/* Actions */}
                     <div className="flex flex-col space-y-2 pt-2">
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 flex items-center space-x-2"
+                          asChild
+                        >
+                          <Link href={`/car/${car.id}`}>
+                            <History className="w-4 h-4" />
+                            <span>Historique</span>
+                          </Link>
+                        </Button>
+                      </div>
+
                       <Button
-                        onClick={() => handlePurchase(car)}
-                        disabled={!canBuyCar(car) || isPurchasing}
-                        className="w-full flex items-center space-x-2"
-                        variant={canBuyCar(car) ? "default" : "secondary"}
+                        onClick={() => handlePurchaseClick(car)}
+                        disabled={
+                          !canBuyCar(car) || 
+                          (isPurchasing && selectedCar?.id === car.id)
+                        }
+                        className="w-full flex items-center space-x-2 glow-effect"
                       >
                         {isPurchasing && selectedCar?.id === car.id ? (
                           <>
-                            <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                             <span>Achat en cours...</span>
+                          </>
+                        ) : !canBuyCar(car) ? (
+                          <>
+                            <AlertCircle className="w-4 h-4" />
+                            <span>Non disponible</span>
                           </>
                         ) : (
                           <>
                             <ShoppingCart className="w-4 h-4" />
-                            <span>
-                              {isOwnCar 
-                                ? "Votre voiture" 
-                                : canBuyCar(car) 
-                                  ? "Acheter maintenant" 
-                                  : "Non disponible"
-                              }
-                            </span>
+                            <span>Acheter maintenant</span>
                           </>
                         )}
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && filteredCars.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <CarIcon className="w-8 h-8 text-muted-foreground" />
+              ))}
             </div>
-            <h3 className="text-lg font-semibold mb-2">Aucun véhicule trouvé</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchTerm
-                ? "Essayez de modifier vos critères de recherche."
-                : "Il n'y a pas de véhicules disponibles à l'achat pour le moment."}
-            </p>
-            <Button onClick={handleRefresh} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Actualiser la liste
-            </Button>
+
+            {/* État vide */}
+            {filteredCars.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CarIcon className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Aucun véhicule trouvé</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm
+                    ? "Essayez de modifier vos critères de recherche."
+                    : "Il n'y a pas de véhicules disponibles à l'achat pour le moment."}
+                </p>
+                {!searchTerm && (
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard">Retour au tableau de bord</Link>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Sidebar avec les événements */}
+          <div className="lg:col-span-1">
+            <EventsFeed maxEvents={8} />
+          </div>
+        </div>
       </div>
+
+      {/* Dialog de confirmation d'achat */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer l'achat</DialogTitle>
+            <DialogDescription>
+              Vous êtes sur le point d'acheter ce véhicule. Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCar && (
+            <div className="py-4">
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Véhicule</span>
+                  <span className="font-medium">{selectedCar.marque} {selectedCar.modele}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">VIN</span>
+                  <span className="font-mono text-sm">{selectedCar.vin}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Prix</span>
+                  <span className="font-bold text-lg">{formatEther(selectedCar.prix)} ETH</span>
+                </div>
+              </div>
+              
+              <Alert className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Cette transaction sera enregistrée de manière permanente sur la blockchain Ethereum.
+                  Assurez-vous d'avoir suffisamment d'ETH pour couvrir le prix et les frais de gas.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleConfirmPurchase} 
+              disabled={isPurchasing}
+              className="flex items-center space-x-2"
+            >
+              {isPurchasing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Achat en cours...</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Confirmer l'achat</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
