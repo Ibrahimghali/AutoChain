@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Navigation } from "@/components/navigation"
 import { BlockchainStatus } from "@/components/blockchain-status"
+import { ConstructorHeader } from "@/components/constructor-header" // Added constructor header import
 import { useWeb3 } from "@/hooks/use-web3"
 import {
   Car,
@@ -21,7 +22,7 @@ import {
 } from "lucide-react"
 
 export default function HomePage() {
-  const { isConnected, userRole, connect, isLoading, error } = useWeb3()
+  const { isConnected, userRole, connect, isLoading, error, account } = useWeb3() // Added account to destructuring
 
   const features = [
     {
@@ -70,6 +71,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navigation currentPath="/" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
 
+      {isConnected && userRole === "constructor" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <ConstructorHeader />
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="blockchain-grid absolute inset-0 opacity-30" />
@@ -116,7 +123,7 @@ export default function HomePage() {
             <div className="mt-8 max-w-md mx-auto">
               <BlockchainStatus
                 isConnected={isConnected}
-                account={useWeb3().account}
+                account={account} // Using account from useWeb3 hook
                 userRole={userRole}
                 error={error}
                 onConnect={connect}

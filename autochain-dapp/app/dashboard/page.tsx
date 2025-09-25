@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
 import { CarCard } from "@/components/car-card"
 import { StatsOverview } from "@/components/stats-overview"
+import { ConstructorHeader } from "@/components/constructor-header" // Added constructor header import
 import { useWeb3 } from "@/hooks/use-web3"
 import { useCars } from "@/hooks/use-cars"
 import { Search, Plus, CarIcon, ShoppingCart } from "lucide-react"
@@ -97,6 +98,8 @@ export default function DashboardPage() {
       <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {userRole === "constructor" && <ConstructorHeader />}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
