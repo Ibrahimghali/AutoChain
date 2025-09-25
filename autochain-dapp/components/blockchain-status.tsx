@@ -24,7 +24,6 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
   const [balance, setBalance] = useState<string>("0")
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
 
-  // Charger les informations du réseau
   useEffect(() => {
     const loadNetworkInfo = async () => {
       try {
@@ -40,7 +39,6 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
     }
   }, [isConnected])
 
-  // Charger le solde du compte
   useEffect(() => {
     const loadBalance = async () => {
       if (!web3 || !account) return
@@ -72,6 +70,7 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
       console.error("Erreur lors de la copie:", error)
     }
   }
+
   const getRoleBadgeVariant = (role: string | null | undefined) => {
     switch (role) {
       case "constructor":
@@ -140,7 +139,9 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
   }
 
   return (
-    <Card className={`border-primary/50 ${networkInfo?.isSupported ? 'bg-primary/5' : 'bg-yellow-50 border-yellow-200'}`}>
+    <Card
+      className={`border-primary/50 ${networkInfo?.isSupported ? "bg-primary/5" : "bg-yellow-50 border-yellow-200"}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -178,9 +179,10 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const explorerUrl = networkInfo?.chainId === 1337 
-                      ? `#` // Pas d'explorateur pour Ganache local
-                      : `https://etherscan.io/address/${account}`
+                    const explorerUrl =
+                      networkInfo?.chainId === 1337
+                        ? `#` // Pas d'explorateur pour Ganache local
+                        : `https://etherscan.io/address/${account}`
                     if (networkInfo?.chainId !== 1337) {
                       window.open(explorerUrl, "_blank")
                     }
@@ -202,7 +204,7 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
             {isLoadingBalance ? (
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             ) : (
-              <span className="text-sm font-mono">{parseFloat(balance).toFixed(4)} ETH</span>
+              <span className="text-sm font-mono">{Number.parseFloat(balance).toFixed(4)} ETH</span>
             )}
           </div>
         </div>
@@ -218,7 +220,7 @@ export function BlockchainStatus({ isConnected, account, userRole, error, onConn
           <span className="text-sm text-muted-foreground">Réseau</span>
           <div className="flex items-center space-x-2">
             <Network className="w-3 h-3 text-muted-foreground" />
-            <span className={`text-sm font-medium ${networkInfo?.isSupported ? '' : 'text-yellow-600'}`}>
+            <span className={`text-sm font-medium ${networkInfo?.isSupported ? "" : "text-yellow-600"}`}>
               {networkInfo?.name || "Chargement..."}
             </span>
             {networkInfo && !networkInfo.isSupported && (

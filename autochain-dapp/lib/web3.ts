@@ -51,23 +51,21 @@ export const CONTRACT_ABI = [
   "function nextCarId() view returns (uint)",
 ]
 
-// Configuration du contrat pour différents réseaux
 export const NETWORKS = {
   ganache: {
     chainId: 1337,
     name: "Ganache Local",
     rpcUrl: "http://127.0.0.1:7545",
-    contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   },
   sepolia: {
     chainId: 11155111,
     name: "Sepolia Testnet",
     rpcUrl: "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
-    contractAddress: "" // À remplacer lors du déploiement
-  }
+    contractAddress: "", // À remplacer lors du déploiement
+  },
 }
 
-// Adresse du contrat déployé (détectée automatiquement selon le réseau)
 export const getContractAddress = (chainId: number): string => {
   switch (chainId) {
     case 1337:
@@ -105,11 +103,10 @@ export async function connectWallet(): Promise<Web3State> {
     // Créer le provider et le signer
     const provider = new ethers.BrowserProvider(window.ethereum)
     const signer = await provider.getSigner()
-    
-    // Obtenir le réseau actuel
+
     const network = await provider.getNetwork()
     const chainId = Number(network.chainId)
-    
+
     // Vérifier si le réseau est supporté
     const contractAddress = getContractAddress(chainId)
     if (!contractAddress) {
@@ -271,6 +268,48 @@ export async function getUserCars(contract: ethers.Contract, userAccount: string
   }
 }
 
+export async function cancelSale(contract: ethers.Contract, carId: number): Promise<void> {
+  try {
+    const tx = await contract.cancelSale(carId)
+    await tx.wait()
+  } catch (error) {
+    console.error("Erreur lors de l'annulation de la vente:", error)
+    throw error
+  }
+}
+
+export async function getAllCars(contract: ethers.Contract): Promise<Car[]> {
+  try {
+    const nextCarId = await contract.nextCarId()
+    const allCars: Car[] = []
+
+    for (let i = 1; i < nextCarId; i++) {
+      try {
+        const car = await getCar(contract, i)
+        allCars.push(car)
+      } catch (error) {
+        // Véhicule peut ne pas exister, continuer
+        continue
+      }
+    }
+
+    return allCars
+  } catch (error) {
+    console.error("Erreur lors de la récupération de tous les véhicules:", error)
+    throw error
+  }
+}
+
+export async function isAdmin(contract: ethers.Contract, userAccount: string): Promise<boolean> {
+  try {
+    const adminAddress = await contract.admin()
+    return adminAddress.toLowerCase() === userAccount.toLowerCase()
+  } catch (error) {
+    console.error("Erreur lors de la vérification admin:", error)
+    return false
+  }
+}
+
 export function formatEther(wei: string): string {
   try {
     return ethers.formatEther(wei)
@@ -330,6 +369,24 @@ export function setupContractListeners(contract: ethers.Contract, callback: (eve
     })
   })
 
+  // Écouter les événements d'ajout de constructeur
+  contract.on("ConstructorAdded", (ctor, event) => {
+    callback({
+      type: "ConstructorAdded",
+      constructor: ctor,
+      event,
+    })
+  })
+
+  // Écouter les événements de suppression de constructeur
+  contract.on("ConstructorRemoved", (ctor, event) => {
+    callback({
+      type: "ConstructorRemoved",
+      constructor: ctor,
+      event,
+    })
+  })
+
   // Fonction de nettoyage
   return () => {
     contract.removeAllListeners()
@@ -341,7 +398,38 @@ export function isMetaMaskInstalled(): boolean {
   return typeof window !== "undefined" && typeof window.ethereum !== "undefined"
 }
 
-// Changer vers le réseau Ganache local
+// Demander à l'utilisateur d'ajouter le réseau Ethereum (si nécessaire)
+export async function switchToLocalNetwork(): Promise<void> {
+  if (!window.ethereum) return
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x539" }], // Ganache default chain ID (1337)
+    })
+  } catch (error: any) {
+    // Si le réseau n'est pas ajouté, le proposer
+    if (error.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0x539",
+            chainName: "Ganache Local",
+            nativeCurrency: {
+              name: "Ether",
+              symbol: "ETH",
+              decimals: 18,
+            },
+            rpcUrls: ["http://127.0.0.1:7545"],
+            blockExplorerUrls: null,
+          },
+        ],
+      })
+    }
+  }
+}
+
 export async function switchToGanacheNetwork(): Promise<void> {
   if (!window.ethereum) return
 
@@ -373,7 +461,6 @@ export async function switchToGanacheNetwork(): Promise<void> {
   }
 }
 
-// Changer vers le réseau Sepolia testnet
 export async function switchToSepoliaNetwork(): Promise<void> {
   if (!window.ethereum) return
 
@@ -404,7 +491,6 @@ export async function switchToSepoliaNetwork(): Promise<void> {
   }
 }
 
-// Obtenir les informations du réseau actuel
 export async function getCurrentNetwork(): Promise<{ chainId: number; name: string; isSupported: boolean }> {
   if (!window.ethereum) {
     throw new Error("MetaMask non détecté")
@@ -413,10 +499,10 @@ export async function getCurrentNetwork(): Promise<{ chainId: number; name: stri
   const provider = new ethers.BrowserProvider(window.ethereum)
   const network = await provider.getNetwork()
   const chainId = Number(network.chainId)
-  
+
   let name = "Réseau inconnu"
   let isSupported = false
-  
+
   switch (chainId) {
     case 1337:
       name = "Ganache Local"
@@ -430,22 +516,10 @@ export async function getCurrentNetwork(): Promise<{ chainId: number; name: stri
       name = `Réseau personnalisé (${chainId})`
       isSupported = false
   }
-  
+
   return { chainId, name, isSupported }
 }
 
-// Fonction pour annuler la vente d'une voiture
-export async function cancelCarSale(contract: ethers.Contract, carId: number): Promise<void> {
-  try {
-    const tx = await contract.cancelSale(carId)
-    await tx.wait()
-  } catch (error) {
-    console.error("Erreur lors de l'annulation de la vente:", error)
-    throw error
-  }
-}
-
-// Fonction pour obtenir le solde ETH d'une adresse
 export async function getBalance(provider: ethers.BrowserProvider, address: string): Promise<string> {
   try {
     const balance = await provider.getBalance(address)
@@ -456,20 +530,19 @@ export async function getBalance(provider: ethers.BrowserProvider, address: stri
   }
 }
 
-// Gestion des erreurs blockchain avec messages utilisateur
 export function handleBlockchainError(error: any): string {
   if (error.code === 4001) {
     return "Transaction rejetée par l'utilisateur"
   }
-  
+
   if (error.code === -32603) {
     return "Erreur interne de la blockchain"
   }
-  
+
   if (error.message?.includes("insufficient funds")) {
     return "Fonds insuffisants pour cette transaction"
   }
-  
+
   if (error.message?.includes("execution reverted")) {
     // Extraire le message d'erreur du smart contract
     const revertReason = error.message.match(/reverted with reason string '(.*)'/)?.[1]
@@ -478,10 +551,10 @@ export function handleBlockchainError(error: any): string {
     }
     return "Transaction échouée : vérifiez les conditions du smart contract"
   }
-  
+
   if (error.message?.includes("user rejected")) {
     return "Transaction annulée par l'utilisateur"
   }
-  
+
   return error.message || "Erreur inconnue lors de la transaction"
 }

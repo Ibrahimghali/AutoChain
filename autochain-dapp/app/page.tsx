@@ -1,14 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Navigation } from "@/components/navigation"
-import { StatsOverview } from "@/components/stats-overview"
-import { BlockchainStatus } from "@/components/blockchain-status"
-import { useWeb3 } from "@/hooks/use-web3"
-import { useAutoChain } from "@/hooks/use-autochain"
-import { formatEther, shortenAddress } from "@/lib/web3"
+import { connectWallet, type Web3State } from "@/lib/web3"
 import {
   Car,
   Shield,
@@ -21,25 +18,28 @@ import {
   Lock,
   Zap,
   Globe,
-  AlertCircle,
 } from "lucide-react"
-import Link from "next/link"
 
 export default function HomePage() {
-  const { isConnected, account, connect, userRole, isLoading: web3Loading, error: web3Error } = useWeb3()
-  const { 
-    carsForSale, 
-    contractStats, 
-    canCreateCar,
-    isLoading: autoChainLoading,
-    error: autoChainError
-  } = useAutoChain()
+  const [web3State, setWeb3State] = useState<Web3State>({
+    isConnected: false,
+    account: null,
+    userRole: null,
+    contract: null,
+    web3: null,
+  })
+  const [isConnecting, setIsConnecting] = useState(false)
 
   const handleConnectWallet = async () => {
+    setIsConnecting(true)
     try {
-      await connect()
+      const newState = await connectWallet()
+      setWeb3State(newState)
     } catch (error) {
       console.error("Erreur de connexion:", error)
+      alert("Erreur de connexion à MetaMask. Assurez-vous qu'il est installé et déverrouillé.")
+    } finally {
+      setIsConnecting(false)
     }
   }
 
@@ -52,8 +52,8 @@ export default function HomePage() {
     },
     {
       icon: History,
-      title: "Historique Transparent",
-      description: "Traçabilité complète des propriétaires et transactions depuis la création.",
+      title: "Traçabilité Complète",
+      description: "Historique transparent et immuable de tous les propriétaires successifs.",
       color: "text-accent",
     },
     {
@@ -70,28 +70,11 @@ export default function HomePage() {
     },
   ]
 
-  // Utiliser les statistiques réelles du contrat ou valeurs par défaut
   const stats = [
-    { 
-      label: "Véhicules Certifiés", 
-      value: contractStats.totalCars > 0 ? contractStats.totalCars.toString() : "12,847", 
-      icon: Car 
-    },
-    { 
-      label: "Véhicules en Vente", 
-      value: contractStats.carsForSale > 0 ? contractStats.carsForSale.toString() : "24", 
-      icon: Users 
-    },
-    { 
-      label: "Transactions Réalisées", 
-      value: contractStats.totalTransactions > 0 ? contractStats.totalTransactions.toString() : "3,291", 
-      icon: TrendingUp 
-    },
-    { 
-      label: "Utilisateurs Actifs", 
-      value: carsForSale.length > 0 ? carsForSale.length.toString() : "8,456", 
-      icon: Globe 
-    },
+    { label: "Véhicules Certifiés", value: "12,847", icon: Car },
+    { label: "Constructeurs Partenaires", value: "24", icon: Users },
+    { label: "Transactions Réalisées", value: "3,291", icon: TrendingUp },
+    { label: "Utilisateurs Actifs", value: "8,456", icon: Globe },
   ]
 
   const benefits = [
@@ -103,25 +86,14 @@ export default function HomePage() {
     "Conformité réglementaire automatique",
   ]
 
-  const isLoading = web3Loading || autoChainLoading
-  const error = web3Error || autoChainError
-
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-
-      {/* Affichage de l'état de la blockchain */}
-      {isConnected && <BlockchainStatus isConnected={isConnected} account={account} userRole={userRole} />}
-
-      {/* Affichage des erreurs */}
-      {error && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-destructive" />
-            <span className="text-destructive">{error}</span>
-          </div>
-        </div>
-      )}
+      <Navigation
+        currentPath="/"
+        userRole={web3State.userRole}
+        isConnected={web3State.isConnected}
+        onConnectWallet={handleConnectWallet}
+      />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -142,37 +114,29 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {!isConnected ? (
+              {!web3State.isConnected ? (
                 <Button
                   size="lg"
                   onClick={handleConnectWallet}
-                  disabled={isLoading}
+                  disabled={isConnecting}
                   className="flex items-center space-x-2 glow-effect"
                 >
                   <Wallet className="w-5 h-5" />
-                  <span>{isLoading ? "Connexion..." : "Connecter MetaMask"}</span>
+                  <span>{isConnecting ? "Connexion..." : "Connecter MetaMask"}</span>
                 </Button>
               ) : (
-                <Link href="/dashboard">
-                  <Button size="lg" className="glow-effect flex items-center space-x-2">
+                <Button size="lg" asChild className="glow-effect">
+                  <a href="/dashboard" className="flex items-center space-x-2">
                     <Car className="w-5 h-5" />
                     <span>Accéder au Tableau de Bord</span>
                     <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
+                  </a>
+                </Button>
               )}
               <Button variant="outline" size="lg" asChild>
                 <a href="#features">En savoir plus</a>
               </Button>
             </div>
-
-            {/* Affichage de l'état de connexion */}
-            {isConnected && account && (
-              <div className="mt-6 text-sm text-muted-foreground">
-                Connecté avec: {shortenAddress(account)}
-                {canCreateCar && <Badge className="ml-2">Constructeur certifié</Badge>}
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -281,9 +245,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <StatsOverview userRole={userRole} cars={carsForSale} userAccount={account} />
-
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-primary/10 to-accent/10">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
@@ -293,24 +254,24 @@ export default function HomePage() {
           <p className="text-xl text-muted-foreground text-pretty mb-8">
             Rejoignez la communauté AutoChain et découvrez une nouvelle façon de vendre et d'acheter des véhicules.
           </p>
-          {!isConnected ? (
+          {!web3State.isConnected ? (
             <Button
               size="lg"
               onClick={handleConnectWallet}
-              disabled={isLoading}
+              disabled={isConnecting}
               className="flex items-center space-x-2 glow-effect mx-auto"
             >
               <Wallet className="w-5 h-5" />
-              <span>{isLoading ? "Connexion en cours..." : "Commencer maintenant"}</span>
+              <span>{isConnecting ? "Connexion en cours..." : "Commencer maintenant"}</span>
             </Button>
           ) : (
-            <Link href="/dashboard">
-              <Button size="lg" className="glow-effect flex items-center space-x-2">
+            <Button size="lg" asChild className="glow-effect">
+              <a href="/dashboard" className="flex items-center space-x-2">
                 <Car className="w-5 h-5" />
                 <span>Accéder à votre tableau de bord</span>
                 <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+              </a>
+            </Button>
           )}
         </div>
       </section>
