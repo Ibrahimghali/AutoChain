@@ -51,32 +51,16 @@ export const CONTRACT_ABI = [
   "function nextCarId() view returns (uint)",
 ]
 
-export const NETWORKS = {
-  ganache: {
-    chainId: 5777,
-    name: "Ganache Local",
-    rpcUrl: "http://127.0.0.1:7545",
-    contractAddress: "0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A",
-  },
-  sepolia: {
-    chainId: 11155111,
-    name: "Sepolia Testnet",
-    rpcUrl: "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
-    contractAddress: "", // À remplacer lors du déploiement
-  },
-}
+// Configuration réseau depuis les variables d'environnement
+export const getNetworkConfig = () => ({
+  chainId: Number(process.env.NEXT_PUBLIC_CHAIN_ID) || 1337,
+  name: process.env.NEXT_PUBLIC_NETWORK_NAME || "Local Network",
+  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:7545",
+  contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A",
+})
 
-export const getContractAddress = (chainId: number): string => {
-  switch (chainId) {
-    case 5777:
-      return NETWORKS.ganache.contractAddress
-    case 1337:
-      return NETWORKS.ganache.contractAddress
-    case 11155111:
-      return NETWORKS.sepolia.contractAddress
-    default:
-      return NETWORKS.ganache.contractAddress // Par défaut, Ganache local
-  }
+export const getContractAddress = (): string => {
+  return getNetworkConfig().contractAddress
 }
 
 declare global {
@@ -110,7 +94,7 @@ export async function connectWallet(): Promise<Web3State> {
     const chainId = Number(network.chainId)
 
     // Vérifier si le réseau est supporté
-    const contractAddress = getContractAddress(chainId)
+    const contractAddress = getContractAddress()
     if (!contractAddress) {
       throw new Error(`Réseau non supporté (Chain ID: ${chainId}). Veuillez vous connecter à Ganache local ou Sepolia.`)
     }

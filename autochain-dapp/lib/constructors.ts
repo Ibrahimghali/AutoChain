@@ -10,29 +10,51 @@ export interface ConstructorInfo {
   secondaryColor: string
 }
 
-// Base de données des constructeurs certifiés
-export const CONSTRUCTORS: Record<string, ConstructorInfo> = {
-  // Constructeurs réels certifiés dans le contrat AutoChain
-  "0x2f609e0c31ad4f3ee42ebef47cf347d198dee998": {
-    address: "0x2f609e0c31ad4f3ee42ebef47cf347d198dee998",
-    name: "Tesla Motors",
-    brand: "Tesla",
-    logo: "/tesla-logo.png",
-    description: "Constructeur de véhicules électriques premium et innovant",
-    website: "https://tesla.com",
-    primaryColor: "#dc2626", // red-600
-    secondaryColor: "#fef2f2", // red-50
-  },
-  "0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa": {
-    address: "0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa",
-    name: "BMW Group",
-    brand: "BMW",
-    logo: "/bmw-logo.png",
-    description: "Constructeur automobile allemand de luxe et performance",
-    website: "https://bmw.com",
-    primaryColor: "#2563eb", // blue-600
-    secondaryColor: "#eff6ff", // blue-50
-  },
+// Couleurs par défaut pour les constructeurs
+const DEFAULT_COLORS = [
+  { primary: "#dc2626", secondary: "#fef2f2" }, // red
+  { primary: "#2563eb", secondary: "#eff6ff" }, // blue
+  { primary: "#059669", secondary: "#ecfdf5" }, // emerald
+  { primary: "#7c3aed", secondary: "#f3e8ff" }, // violet
+  { primary: "#ea580c", secondary: "#fff7ed" }, // orange
+  { primary: "#0891b2", secondary: "#ecfeff" }, // cyan
+]
+
+// Charger les constructeurs depuis les variables d'environnement
+function loadConstructorsFromEnv(): Record<string, ConstructorInfo> {
+  const constructors: Record<string, ConstructorInfo> = {}
+  
+  const addresses = process.env.NEXT_PUBLIC_CONSTRUCTOR_ADDRESSES?.split(',').map(addr => addr.trim()) || []
+  const names = process.env.NEXT_PUBLIC_CONSTRUCTOR_NAMES?.split(',').map(name => name.trim()) || []
+  const descriptions = process.env.NEXT_PUBLIC_CONSTRUCTOR_DESCRIPTIONS?.split(',').map(desc => desc.trim()) || []
+  
+  addresses.forEach((address, index) => {
+    if (address) {
+      const name = names[index] || `Constructeur ${index + 1}`
+      const description = descriptions[index] || `Constructeur automobile certifié`
+      const colorIndex = index % DEFAULT_COLORS.length
+      const colors = DEFAULT_COLORS[colorIndex]
+      
+      constructors[address.toLowerCase()] = {
+        address: address.toLowerCase(),
+        name,
+        brand: name.replace(/\s*(Motors|Group|AG|Corporation|Corp|Inc|Ltd).*$/i, ''), // Extraire la marque
+        logo: `/${name.toLowerCase().replace(/\s+/g, '-')}-logo.png`,
+        description,
+        primaryColor: colors.primary,
+        secondaryColor: colors.secondary,
+      }
+    }
+  })
+  
+  return constructors
+}
+
+// Base de données des constructeurs certifiés (générée dynamiquement)
+export const CONSTRUCTORS: Record<string, ConstructorInfo> = loadConstructorsFromEnv()
+
+// Constructeurs d'exemple pour les tests (sera supprimé en production)
+const EXAMPLE_CONSTRUCTORS: Record<string, ConstructorInfo> = {
   // Constructeurs d'exemple (garder pour compatibilité)
   "0x3456789012345678901234567890123456789012": {
     address: "0x3456789012345678901234567890123456789012",
