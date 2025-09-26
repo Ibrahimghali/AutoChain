@@ -1,5 +1,5 @@
 # AutoChain - Configuration et Déploiement des Constructeurs
-![Aperçu de l'accueil AutoChain](public/acceuil-screenshot.png)
+![Aperçu de l'accueil AutoChain](assets/acceuil-screenshot.png)
 
 
 ## Vue d'ensemble
