@@ -6,7 +6,12 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "init-constructors": "node scripts/init-constructors.js",
+    "init-constructors-auto": "node scripts/init-constructors-auto.js",
+    "init-constructors-final": "node scripts/init-constructors-final.js",
+    "certify-constructors": "node scripts/certify-constructors.js",
+    "diagnose": "node scripts/diagnose-accounts.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

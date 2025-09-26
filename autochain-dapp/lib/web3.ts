@@ -560,3 +560,156 @@ export function handleBlockchainError(error: any): string {
 
   return error.message || "Erreur inconnue lors de la transaction"
 }
+
+// Adresses des constructeurs certifiés
+export const CERTIFIED_CONSTRUCTORS = [
+  "0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998",
+  "0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa"
+]
+
+/**
+ * Ajoute un constructeur au contrat (seul l'admin peut le faire)
+ */
+export async function addConstructor(
+  contract: ethers.Contract,
+  constructorAddress: string,
+  signer: ethers.Signer
+): Promise<{ success: boolean; message: string; txHash?: string }> {
+  try {
+    console.log(`Ajout du constructeur: ${constructorAddress}`)
+    
+    // Vérifier que l'adresse est valide
+    if (!ethers.isAddress(constructorAddress)) {
+      return { success: false, message: "Adresse invalide" }
+    }
+
+    // Vérifier si le constructeur n'est pas déjà ajouté
+    const isAlreadyConstructor = await contract.isConstructor(constructorAddress)
+    if (isAlreadyConstructor) {
+      return { success: false, message: "Cette adresse est déjà un constructeur certifié" }
+    }
+
+    // Ajouter le constructeur - cast vers any pour éviter les erreurs TypeScript
+    const contractWithMethods = contract as any
+    const tx = await contractWithMethods.connect(signer).addConstructor(constructorAddress)
+    const receipt = await tx.wait()
+
+    console.log(`Constructeur ajouté avec succès. Hash: ${receipt.hash}`)
+    return { 
+      success: true, 
+      message: "Constructeur ajouté avec succès", 
+      txHash: receipt.hash 
+    }
+  } catch (error: any) {
+    console.error("Erreur lors de l'ajout du constructeur:", error)
+    return { 
+      success: false, 
+      message: handleBlockchainError(error) 
+    }
+  }
+}
+
+/**
+ * Supprime un constructeur du contrat (seul l'admin peut le faire)
+ */
+export async function removeConstructor(
+  contract: ethers.Contract,
+  constructorAddress: string,
+  signer: ethers.Signer
+): Promise<{ success: boolean; message: string; txHash?: string }> {
+  try {
+    console.log(`Suppression du constructeur: ${constructorAddress}`)
+    
+    // Vérifier que l'adresse est valide
+    if (!ethers.isAddress(constructorAddress)) {
+      return { success: false, message: "Adresse invalide" }
+    }
+
+    // Vérifier que le constructeur existe
+    const isConstructor = await contract.isConstructor(constructorAddress)
+    if (!isConstructor) {
+      return { success: false, message: "Cette adresse n'est pas un constructeur certifié" }
+    }
+
+    // Supprimer le constructeur - cast vers any pour éviter les erreurs TypeScript
+    const contractWithMethods = contract as any
+    const tx = await contractWithMethods.connect(signer).removeConstructor(constructorAddress)
+    const receipt = await tx.wait()
+
+    console.log(`Constructeur supprimé avec succès. Hash: ${receipt.hash}`)
+    return { 
+      success: true, 
+      message: "Constructeur supprimé avec succès", 
+      txHash: receipt.hash 
+    }
+  } catch (error: any) {
+    console.error("Erreur lors de la suppression du constructeur:", error)
+    return { 
+      success: false, 
+      message: handleBlockchainError(error) 
+    }
+  }
+}
+
+/**
+ * Vérifie si une adresse est un constructeur certifié
+ */
+export async function checkConstructorStatus(
+  contract: ethers.Contract,
+  address: string
+): Promise<{ isConstructor: boolean; address: string }> {
+  try {
+    const isConstructor = await contract.isConstructor(address)
+    return { isConstructor, address }
+  } catch (error: any) {
+    console.error("Erreur lors de la vérification du statut constructeur:", error)
+    return { isConstructor: false, address }
+  }
+}
+
+/**
+ * Ajoute tous les constructeurs certifiés au contrat
+ */
+export async function initializeCertifiedConstructors(
+  contract: ethers.Contract,
+  signer: ethers.Signer
+): Promise<{ success: boolean; results: Array<{ address: string; success: boolean; message: string }> }> {
+  console.log("Initialisation des constructeurs certifiés...")
+  
+  const results = []
+  let overallSuccess = true
+
+  for (const constructorAddress of CERTIFIED_CONSTRUCTORS) {
+    const result = await addConstructor(contract, constructorAddress, signer)
+    results.push({
+      address: constructorAddress,
+      success: result.success,
+      message: result.message
+    })
+    
+    if (!result.success) {
+      overallSuccess = false
+    }
+    
+    // Petit délai entre les transactions pour éviter les problèmes de nonce
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+
+  return { success: overallSuccess, results }
+}
+
+/**
+ * Vérifie le statut de tous les constructeurs certifiés
+ */
+export async function checkAllConstructorsStatus(
+  contract: ethers.Contract
+): Promise<Array<{ address: string; isConstructor: boolean }>> {
+  const results = []
+  
+  for (const address of CERTIFIED_CONSTRUCTORS) {
+    const status = await checkConstructorStatus(contract, address)
+    results.push(status)
+  }
+  
+  return results
+}

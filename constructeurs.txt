@@ -1,0 +1,32 @@
+# Adresses des Constructeurs Certifiés - AutoChain
+
+## Description
+Ce fichier contient les adresses des constructeurs certifiés qui peuvent créer des véhicules dans le système AutoChain.
+Ces adresses doivent être ajoutées par l'administrateur du contrat via la fonction addConstructor().
+
+## Adresses des Constructeurs
+
+### Constructeur 1
+Adresse: 0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998
+
+### Constructeur 2  
+Adresse: 0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa
+
+## Instructions d'utilisation
+
+1. L'administrateur du contrat doit appeler la fonction addConstructor() pour chaque adresse
+2. Exemple d'utilisation avec Web3.js:
+   ```javascript
+   await autoChainContract.methods.addConstructor("0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998").send({from: adminAddress});
+   await autoChainContract.methods.addConstructor("0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa").send({from: adminAddress});
+   ```
+
+3. Une fois ajoutés, ces comptes pourront utiliser la fonction createCar() pour créer des véhicules
+
+## Vérification
+Pour vérifier qu'un constructeur est certifié, utilisez:
+```javascript
+const estConstructeur = await autoChainContract.methods.isConstructor("adresse_du_constructeur").call();
+```
+
+Date de création: 26 septembre 2025

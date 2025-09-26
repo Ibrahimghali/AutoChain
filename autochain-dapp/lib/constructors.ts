@@ -12,32 +12,33 @@ export interface ConstructorInfo {
 
 // Base de données des constructeurs certifiés
 export const CONSTRUCTORS: Record<string, ConstructorInfo> = {
-  // Exemple de constructeurs - remplacez par les vraies adresses
-  "0x1234567890123456789012345678901234567890": {
-    address: "0x1234567890123456789012345678901234567890",
+  // Constructeurs réels certifiés dans le contrat AutoChain
+  "0x2f609e0c31ad4f3ee42ebef47cf347d198dee998": {
+    address: "0x2f609e0c31ad4f3ee42ebef47cf347d198dee998",
     name: "Tesla Motors",
     brand: "Tesla",
-    logo: "/tesla-logo.png", // Using real Tesla logo
-    description: "Constructeur de véhicules électriques premium",
+    logo: "/tesla-logo.png",
+    description: "Constructeur de véhicules électriques premium et innovant",
     website: "https://tesla.com",
     primaryColor: "#dc2626", // red-600
     secondaryColor: "#fef2f2", // red-50
   },
-  "0x2345678901234567890123456789012345678901": {
-    address: "0x2345678901234567890123456789012345678901",
+  "0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa": {
+    address: "0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa",
     name: "BMW Group",
     brand: "BMW",
-    logo: "/bmw-logo.png", // Using real BMW logo
-    description: "Constructeur automobile allemand de luxe",
+    logo: "/bmw-logo.png",
+    description: "Constructeur automobile allemand de luxe et performance",
     website: "https://bmw.com",
     primaryColor: "#2563eb", // blue-600
     secondaryColor: "#eff6ff", // blue-50
   },
+  // Constructeurs d'exemple (garder pour compatibilité)
   "0x3456789012345678901234567890123456789012": {
     address: "0x3456789012345678901234567890123456789012",
     name: "Mercedes-Benz",
     brand: "Mercedes",
-    logo: "/mercedes-logo.png", // Using real Mercedes logo
+    logo: "/mercedes-logo.png",
     description: "Constructeur automobile allemand premium",
     website: "https://mercedes-benz.com",
     primaryColor: "#059669", // emerald-600
@@ -47,7 +48,7 @@ export const CONSTRUCTORS: Record<string, ConstructorInfo> = {
     address: "0x4567890123456789012345678901234567890123",
     name: "Audi AG",
     brand: "Audi",
-    logo: "/audi-logo.png", // Using real Audi logo
+    logo: "/audi-logo.png",
     description: "Constructeur automobile allemand de luxe",
     website: "https://audi.com",
     primaryColor: "#7c3aed", // violet-600
