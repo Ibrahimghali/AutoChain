@@ -1,19 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
 import { CarCard } from "@/components/car-card"
 import { StatsOverview } from "@/components/stats-overview"
-import { ConstructorHeader } from "@/components/constructor-header" // Added constructor header import
+import { ConstructorHeader } from "@/components/constructor-header"
 import { useWeb3 } from "@/hooks/use-web3"
 import { useCars } from "@/hooks/use-cars"
+import { useToast } from "@/hooks/use-toast"
 import { Search, Plus, CarIcon, ShoppingCart } from "lucide-react"
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { toast } = useToast()
   const { isConnected, account, userRole, connect, isLoading: web3Loading, error } = useWeb3()
-  const { cars, userCars, carsForSale, isLoading: carsLoading, error: carsError } = useCars()
+  const { cars, userCars, carsForSale, purchaseCar, isLoading: carsLoading, error: carsError } = useCars()
 
   const [filteredCars, setFilteredCars] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -58,7 +62,7 @@ export default function DashboardPage() {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+        <Navigation currentPath="/dashboard" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CarIcon className="w-8 h-8 text-primary" />
@@ -78,7 +82,7 @@ export default function DashboardPage() {
   if (error || carsError) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+        <Navigation currentPath="/dashboard" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
           <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CarIcon className="w-8 h-8 text-destructive" />
@@ -95,7 +99,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation currentPath="/dashboard" userRole={userRole} isConnected={isConnected} onConnectWallet={connect} />
+      <Navigation currentPath="/dashboard" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {userRole === "constructor" && <ConstructorHeader />}
@@ -178,8 +182,48 @@ export default function DashboardPage() {
               car={car}
               userRole={userRole}
               userAccount={account}
-              onAction={(action, carId) => {
-                console.log(`Action ${action} sur véhicule ${carId}`)
+              onAction={async (action, carId) => {
+                try {
+                  switch (action) {
+                    case "view":
+                      router.push(`/car/${carId}`)
+                      break
+                    
+                    case "history":
+                      router.push(`/history?carId=${carId}`)
+                      break
+                    
+                    case "sell":
+                      router.push(`/sell-car?preselect=${carId}`)
+                      break
+                    
+                    case "buy":
+                      const selectedCar = filteredCars.find(c => c.id === carId)
+                      if (selectedCar && selectedCar.enVente) {
+                        toast({
+                          title: "Achat en cours...",
+                          description: `Achat de ${selectedCar.marque} ${selectedCar.modele} pour ${selectedCar.prix} ETH`,
+                        })
+                        
+                        await purchaseCar(carId, selectedCar.prix)
+                        
+                        toast({
+                          title: "Achat réussi !",
+                          description: `Vous êtes maintenant propriétaire de ${selectedCar.marque} ${selectedCar.modele}`,
+                        })
+                      }
+                      break
+                    
+                    default:
+                      console.log(`Action ${action} non implémentée pour le véhicule ${carId}`)
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "Erreur",
+                    description: error.message || `Impossible d'exécuter l'action ${action}`,
+                    variant: "destructive"
+                  })
+                }
               }}
             />
           ))}

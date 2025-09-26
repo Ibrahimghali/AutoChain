@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,7 @@ import { type Car } from "@/lib/web3"
 import { DollarSign, CarIcon, AlertCircle, TrendingUp, Wallet, CheckCircle } from "lucide-react"
 
 export default function SellCarPage() {
+  const searchParams = useSearchParams()
   const { account, isConnected, userRole, connect } = useWeb3()
   const { userCars, sellCar, isLoading: carsLoading, error: carsError, loadUserCars } = useCars()
   const { toast } = useToast()
@@ -30,6 +32,23 @@ export default function SellCarPage() {
       loadUserCars()
     }
   }, [isConnected, account, loadUserCars])
+
+  // Présélectionner un véhicule si un ID est fourni dans l'URL
+  useEffect(() => {
+    const preselectedId = searchParams.get('preselect')
+    if (preselectedId && userCars.length > 0) {
+      const carToPreselect = userCars.find(car => 
+        car.id === parseInt(preselectedId) && !car.enVente
+      )
+      if (carToPreselect) {
+        setSelectedCar(carToPreselect)
+        toast({
+          title: "Véhicule présélectionné",
+          description: `${carToPreselect.marque} ${carToPreselect.modele} est prêt pour la vente`,
+        })
+      }
+    }
+  }, [searchParams, userCars, toast])
 
   const validatePrice = (value: string) => {
     if (!value.trim()) {

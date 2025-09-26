@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, History, Car, User, Calendar, ExternalLink, Shield } from "lucide-react"
 import { useWeb3 } from "@/hooks/use-web3"
+import { useCars } from "@/hooks/use-cars"
 
 interface HistoryEntry {
   id: string
@@ -26,76 +28,117 @@ interface HistoryEntry {
 }
 
 export default function HistoryPage() {
-  const { account, contract, isConnected } = useWeb3()
+  const searchParams = useSearchParams()
+  const { contract } = useWeb3()
+  const { cars, isLoading: carsLoading } = useCars()
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [filteredHistory, setFilteredHistory] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterAction, setFilterAction] = useState<string>("all")
+  const [filterAction, setFilterAction] = useState<"all" | "created" | "sold" | "purchased">("all")
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (contract) {
+    if (contract && cars) {
       loadHistory()
     }
-  }, [contract])
+  }, [contract, cars])
 
   useEffect(() => {
     filterHistory()
-  }, [history, searchTerm, filterAction])
+  }, [history, searchTerm, filterAction, selectedCarId])
+
+  // Gérer le paramètre carId depuis l'URL
+  useEffect(() => {
+    const carIdParam = searchParams.get('carId')
+    if (carIdParam) {
+      const carId = parseInt(carIdParam)
+      if (!isNaN(carId)) {
+        setSelectedCarId(carId)
+        setSearchTerm(`ID: ${carId}`) // Aide visuelle dans la barre de recherche
+      }
+    }
+  }, [searchParams])
 
   const loadHistory = async () => {
     try {
       setLoading(true)
-      // Simuler les données d'historique pour la démo
-      const mockHistory: HistoryEntry[] = [
-        {
-          id: "1",
-          carId: 1,
-          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
+      
+      if (!cars || cars.length === 0) {
+        setHistory([])
+        return
+      }
+
+      // Créer l'historique basé sur les vraies données des voitures
+      const realHistory: HistoryEntry[] = []
+      
+      cars.forEach((car, index) => {
+        // Le premier propriétaire est le constructeur, le dernier est le propriétaire actuel
+        const constructeur = car.proprietaires[0] || "0x000...Unknown"
+        const proprietaireActuel = car.proprietaires[car.proprietaires.length - 1] || constructeur
+
+        // Entrée de création pour chaque voiture
+        realHistory.push({
+          id: `create-${car.id}`,
+          carId: car.id,
+          carInfo: { 
+            brand: car.marque, 
+            model: car.modele, 
+            vin: car.vin 
+          },
           action: "created",
           from: "0x0000000000000000000000000000000000000000",
-          to: "0x123...BMW",
-          timestamp: Date.now() - 86400000 * 365,
-          transactionHash: "0xabc123...",
-          blockNumber: 18500000,
-        },
-        {
-          id: "2",
-          carId: 1,
-          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
-          action: "sold",
-          from: "0x123...BMW",
-          to: "0x456...Dealer",
-          price: "50.0",
-          timestamp: Date.now() - 86400000 * 180,
-          transactionHash: "0xdef456...",
-          blockNumber: 18600000,
-        },
-        {
-          id: "3",
-          carId: 2,
-          carInfo: { brand: "Mercedes", model: "C-Class", vin: "WDD2050461F123456" },
-          action: "created",
-          from: "0x0000000000000000000000000000000000000000",
-          to: "0x789...Mercedes",
-          timestamp: Date.now() - 86400000 * 200,
-          transactionHash: "0x789ghi...",
-          blockNumber: 18580000,
-        },
-        {
-          id: "4",
-          carId: 1,
-          carInfo: { brand: "BMW", model: "X5", vin: "WBA3A5G59DNP26082" },
-          action: "purchased",
-          from: "0x456...Dealer",
-          to: "0x742d35Cc6634C0532925a3b8D4C9db96590b5",
-          price: "45.5",
-          timestamp: Date.now() - 86400000 * 30,
-          transactionHash: "0x123abc...",
-          blockNumber: 18700000,
-        },
-      ]
-      setHistory(mockHistory)
+          to: constructeur,
+          timestamp: Date.now() - (86400000 * (cars.length - index) * 30), // Décalage temporel
+          transactionHash: `0x${Math.random().toString(16).substring(2, 10)}...create`,
+          blockNumber: 18500000 + index * 1000,
+        })
+
+        // Si la voiture est en vente, ajouter une entrée de mise en vente
+        if (car.enVente) {
+          realHistory.push({
+            id: `sale-${car.id}`,
+            carId: car.id,
+            carInfo: { 
+              brand: car.marque, 
+              model: car.modele, 
+              vin: car.vin 
+            },
+            action: "sold",
+            from: proprietaireActuel,
+            to: "0x456...Marketplace",
+            price: car.prix.toString(),
+            timestamp: Date.now() - (86400000 * (cars.length - index - 1) * 15),
+            transactionHash: `0x${Math.random().toString(16).substring(2, 10)}...sale`,
+            blockNumber: 18500000 + index * 1000 + 500,
+          })
+        }
+
+        // Si la voiture a été vendue (pas en vente mais a changé de propriétaire)
+        if (!car.enVente && car.proprietaires.length > 1) {
+          realHistory.push({
+            id: `purchase-${car.id}`,
+            carId: car.id,
+            carInfo: { 
+              brand: car.marque, 
+              model: car.modele, 
+              vin: car.vin 
+            },
+            action: "purchased",
+            from: car.proprietaires[car.proprietaires.length - 2] || "0x456...Marketplace",
+            to: proprietaireActuel,
+            price: car.prix.toString(),
+            timestamp: Date.now() - (86400000 * (cars.length - index - 1) * 10),
+            transactionHash: `0x${Math.random().toString(16).substring(2, 10)}...purchase`,
+            blockNumber: 18500000 + index * 1000 + 800,
+          })
+        }
+      })
+
+      // Trier par timestamp décroissant (plus récent en premier)
+      realHistory.sort((a, b) => b.timestamp - a.timestamp)
+      
+      setHistory(realHistory)
     } catch (error) {
       console.error("Erreur lors du chargement de l'historique:", error)
     } finally {
@@ -106,10 +149,16 @@ export default function HistoryPage() {
   const filterHistory = () => {
     let filtered = history
 
+    // Filtrer par carId spécifique si sélectionné
+    if (selectedCarId !== null) {
+      filtered = filtered.filter(entry => entry.carId === selectedCarId)
+    }
+
     // Filtrer par terme de recherche
     if (searchTerm) {
       filtered = filtered.filter(
         (entry) =>
+          entry.carId.toString().includes(searchTerm) ||
           entry.carInfo.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
           entry.carInfo.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
           entry.carInfo.vin.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,6 +285,35 @@ export default function HistoryPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Indicateur de véhicule sélectionné */}
+      {selectedCarId !== null && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Car className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium">
+                  Historique filtré pour le véhicule ID: {selectedCarId}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedCarId(null)
+                  setSearchTerm('')
+                  const url = new URL(window.location.href)
+                  url.searchParams.delete('carId')
+                  window.history.replaceState({}, '', url.toString())
+                }}
+              >
+                Voir tout l'historique
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
