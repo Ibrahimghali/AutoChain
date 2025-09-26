@@ -1,4 +1,6 @@
 const AutoChain = artifacts.require("AutoChain");
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
 contract("AutoChain", (accounts) => {
   let autoChain;
@@ -72,5 +74,40 @@ contract("AutoChain", (accounts) => {
     assert.equal(history.length, 2, "Historique correct");
     assert.equal(history[0], constructor1, "Premier propriétaire");
     assert.equal(history[1], user1, "Deuxième propriétaire");
+  });
+});
+
+describe("AutoChain Contract", function () {
+  let autoChain, owner, addr1, addr2;
+
+  beforeEach(async function () {
+    const AutoChain = await ethers.getContractFactory("AutoChain");
+    [owner, addr1, addr2] = await ethers.getSigners();
+    autoChain = await AutoChain.deploy();
+    await autoChain.deployed();
+  });
+
+  it("Should deploy the contract and set the owner", async function () {
+    expect(await autoChain.owner()).to.equal(owner.address);
+  });
+
+  it("Should allow adding a constructor", async function () {
+    await autoChain.addConstructor(addr1.address, "Tesla", "Official Tesla Constructor");
+    const constructor = await autoChain.constructors(addr1.address);
+    expect(constructor.name).to.equal("Tesla");
+    expect(constructor.description).to.equal("Official Tesla Constructor");
+  });
+
+  it("Should prevent non-owners from adding constructors", async function () {
+    await expect(
+      autoChain.connect(addr1).addConstructor(addr2.address, "BMW", "Official BMW Constructor")
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+
+  it("Should retrieve constructor details", async function () {
+    await autoChain.addConstructor(addr1.address, "Tesla", "Official Tesla Constructor");
+    const constructor = await autoChain.constructors(addr1.address);
+    expect(constructor.name).to.equal("Tesla");
+    expect(constructor.description).to.equal("Official Tesla Constructor");
   });
 });
