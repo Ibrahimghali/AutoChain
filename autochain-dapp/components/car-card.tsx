@@ -1,118 +1,64 @@
 "use client"
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { formatEther, type Car } from "@/lib/web3"
-import { CarIcon, Eye, ShoppingCart, DollarSign, History, Users } from "lucide-react"
+import { CarIcon, History, ShoppingCart, Tag } from "lucide-react"
+import type { Car } from "@/lib/web3"
 
 interface CarCardProps {
   car: Car
-  userRole: "constructor" | "user" | null
-  userAccount: string | null
-  onAction: (action: "view" | "buy" | "sell" | "history", carId: number) => void
+  isOwner?: boolean
+  onSell?: (carId: number) => void
+  onBuy?: (carId: number, price: string) => void
+  onViewHistory?: (carId: number) => void
 }
 
-export function CarCard({ car, userRole, userAccount, onAction }: CarCardProps) {
-  const isOwner =
-    userAccount && car.proprietaires[car.proprietaires.length - 1]?.toLowerCase() === userAccount.toLowerCase()
-  const canBuy = car.enVente && !isOwner && userRole === "user"
-  const canSell = isOwner && !car.enVente && (userRole === "user" || userRole === "constructor")
-
+export function CarCard({ car, isOwner, onSell, onBuy, onViewHistory }: CarCardProps) {
   return (
-    <Card className="car-card-hover border-border/50 overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <CarIcon className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">
-                {car.marque} {car.modele}
-              </CardTitle>
-              <CardDescription className="font-mono text-xs">VIN: {car.vin.slice(0, 8)}...</CardDescription>
-            </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CarIcon className="h-5 w-5" />
+            {car.marque} {car.modele}
           </div>
-          <div className="flex flex-col items-end space-y-2">
-            {car.enVente ? (
-              <Badge variant="default" className="bg-accent text-accent-foreground">
-                En vente
-              </Badge>
-            ) : (
-              <Badge variant="secondary">Privé</Badge>
-            )}
-            {isOwner && (
-              <Badge variant="outline" className="text-xs">
-                Vôtre
-              </Badge>
-            )}
-          </div>
-        </div>
+          {car.enVente && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Tag className="h-3 w-3" />
+              En vente
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>VIN: {car.vin}</CardDescription>
       </CardHeader>
-
       <CardContent className="space-y-4">
-        {/* Prix */}
         {car.enVente && (
-          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Prix</span>
-            </div>
-            <div className="text-right">
-              <div className="font-bold text-lg">{formatEther(car.prix)} ETH</div>
-              <div className="text-xs text-muted-foreground">
-                ≈ ${(Number.parseFloat(formatEther(car.prix)) * 2500).toLocaleString()}
-              </div>
-            </div>
+          <div className="p-3 bg-muted rounded-md">
+            <p className="text-sm text-muted-foreground">Prix</p>
+            <p className="text-lg font-semibold">{car.prix} ETH</p>
           </div>
         )}
 
-        {/* Propriétaires */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Propriétaires</span>
-          </div>
-          <span className="font-medium">{car.proprietaires.length}</span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col space-y-2 pt-2">
-          <div className="flex space-x-2">
-            <Link href={`/car/${car.id}`} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full flex items-center space-x-2 bg-transparent">
-                <Eye className="w-4 h-4" />
-                <span>Détails</span>
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onAction("history", car.id)}
-              className="flex-1 flex items-center space-x-2"
-            >
-              <History className="w-4 h-4" />
-              <span>Historique</span>
-            </Button>
-          </div>
-
-          {canBuy && (
-            <Button onClick={() => onAction("buy", car.id)} className="w-full flex items-center space-x-2 glow-effect">
-              <ShoppingCart className="w-4 h-4" />
-              <span>Acheter</span>
+        <div className="flex gap-2">
+          {onViewHistory && (
+            <Button variant="outline" size="sm" onClick={() => onViewHistory(car.id)} className="flex-1">
+              <History className="h-4 w-4 mr-1" />
+              Historique
             </Button>
           )}
 
-          {canSell && (
-            <Button
-              variant="secondary"
-              onClick={() => onAction("sell", car.id)}
-              className="w-full flex items-center space-x-2"
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Mettre en vente</span>
+          {isOwner && !car.enVente && onSell && (
+            <Button size="sm" onClick={() => onSell(car.id)} className="flex-1">
+              <Tag className="h-4 w-4 mr-1" />
+              Mettre en vente
+            </Button>
+          )}
+
+          {!isOwner && car.enVente && onBuy && (
+            <Button size="sm" onClick={() => onBuy(car.id, car.prix)} className="flex-1">
+              <ShoppingCart className="h-4 w-4 mr-1" />
+              Acheter
             </Button>
           )}
         </div>
