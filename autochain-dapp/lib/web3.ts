@@ -1,7 +1,26 @@
+"use client"
+
 import { ethers } from "ethers"
 
-// Configuration du contrat AutoChain
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x..." // À remplacer par l'adresse déployée
+export interface Car {
+  id: number
+  vin: string
+  marque: string
+  modele: string
+  enVente: boolean
+  prix: string
+  proprietaires: string[]
+}
+
+export interface Web3State {
+  isConnected: boolean
+  account: string | null
+  userRole: "constructor" | "user" | null
+  contract: ethers.Contract | null
+  web3: ethers.BrowserProvider | null
+}
+
+// Contract ABI complet basé sur le smart contract AutoChain
 export const CONTRACT_ABI = [
   // Events
   "event ConstructorAdded(address indexed ctor)",
@@ -11,118 +30,533 @@ export const CONTRACT_ABI = [
   "event CarSold(uint indexed carId, address indexed seller, address indexed buyer, uint price)",
 
   // Admin functions
-  "function addConstructor(address ctor) external",
-  "function removeConstructor(address ctor) external",
+  "function admin() view returns (address)",
+  "function addConstructor(address ctor)",
+  "function removeConstructor(address ctor)",
 
   // Constructor functions
-  "function createCar(string memory vin, string memory marque, string memory modele) external returns (uint)",
+  "function isConstructor(address) view returns (bool)",
+  "function createCar(string vin, string marque, string modele) returns (uint)",
 
-  // Owner functions
-  "function putCarForSale(uint carId, uint prix) external",
-  "function cancelSale(uint carId) external",
-
-  // Public functions
-  "function buyCar(uint carId) external payable",
+  // Car management
+  "function putCarForSale(uint carId, uint prix)",
+  "function cancelSale(uint carId)",
+  "function buyCar(uint carId) payable",
 
   // View functions
-  "function isConstructor(address) external view returns (bool)",
-  "function getCar(uint carId) external view returns (uint id, string vin, string marque, string modele, bool enVente, uint prix)",
-  "function getCarHistory(uint carId) external view returns (address[])",
-  "function ownerOf(uint carId) external view returns (address)",
-  "function getCarsForSale() external view returns (uint[])",
-  "function nextCarId() external view returns (uint)",
+  "function getCar(uint carId) view returns (uint id, string vin, string marque, string modele, bool enVente, uint prix)",
+  "function getCarHistory(uint carId) view returns (address[])",
+  "function ownerOf(uint carId) view returns (address)",
+  "function getCarsForSale() view returns (uint[])",
+  "function nextCarId() view returns (uint)",
 ]
 
-export interface Car {
-  id: number
-  vin: string
-  marque: string
-  modele: string
-  enVente: boolean
-  prix: string
-  owner?: string
+export const NETWORKS = {
+  ganache: {
+    chainId: 5777,
+    name: "Ganache Local",
+    rpcUrl: "http://127.0.0.1:7545",
+    contractAddress: "0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A",
+  },
+  sepolia: {
+    chainId: 11155111,
+    name: "Sepolia Testnet",
+    rpcUrl: "https://sepolia.infura.io/v3/YOUR_INFURA_KEY",
+    contractAddress: "", // À remplacer lors du déploiement
+  },
 }
 
-export class Web3Service {
-  private provider: ethers.BrowserProvider | null = null
-  private signer: ethers.Signer | null = null
-  private contract: ethers.Contract | null = null
+export const getContractAddress = (chainId: number): string => {
+  switch (chainId) {
+    case 5777:
+      return NETWORKS.ganache.contractAddress
+    case 1337:
+      return NETWORKS.ganache.contractAddress
+    case 11155111:
+      return NETWORKS.sepolia.contractAddress
+    default:
+      return NETWORKS.ganache.contractAddress // Par défaut, Ganache local
+  }
+}
 
-  async connectWallet(): Promise<string> {
-    if (!window.ethereum) {
-      throw new Error("MetaMask n'est pas installé")
+declare global {
+  interface Window {
+    ethereum?: any
+  }
+}
+
+export async function connectWallet(): Promise<Web3State> {
+  if (typeof window === "undefined" || !window.ethereum) {
+    throw new Error("MetaMask non détecté. Veuillez installer MetaMask.")
+  }
+
+  try {
+    // Demander la connexion à MetaMask
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    })
+
+    if (accounts.length === 0) {
+      throw new Error("Aucun compte sélectionné")
     }
 
-    try {
-      this.provider = new ethers.BrowserProvider(window.ethereum)
-      await this.provider.send("eth_requestAccounts", [])
-      this.signer = await this.provider.getSigner()
-      this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.signer)
+    const account = accounts[0]
 
-      const address = await this.signer.getAddress()
-      return address
-    } catch (error) {
-      console.error("Erreur de connexion:", error)
-      throw error
+    // Créer le provider et le signer
+    const provider = new ethers.BrowserProvider(window.ethereum)
+    const signer = await provider.getSigner()
+
+    const network = await provider.getNetwork()
+    const chainId = Number(network.chainId)
+
+    // Vérifier si le réseau est supporté
+    const contractAddress = getContractAddress(chainId)
+    if (!contractAddress) {
+      throw new Error(`Réseau non supporté (Chain ID: ${chainId}). Veuillez vous connecter à Ganache local ou Sepolia.`)
     }
-  }
 
-  async isConstructor(address: string): Promise<boolean> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    return await this.contract.isConstructor(address)
-  }
+    // Créer l'instance du contrat
+    const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer)
 
-  async createCar(vin: string, marque: string, modele: string): Promise<ethers.ContractTransactionResponse> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    return await this.contract.createCar(vin, marque, modele)
-  }
+    // Détecter le rôle de l'utilisateur
+    const userRole = await detectUserRole(account, contract)
 
-  async putCarForSale(carId: number, prix: string): Promise<ethers.ContractTransactionResponse> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    const priceInWei = ethers.parseEther(prix)
-    return await this.contract.putCarForSale(carId, priceInWei)
+    return {
+      isConnected: true,
+      account,
+      userRole,
+      contract,
+      web3: provider,
+    }
+  } catch (error) {
+    console.error("Erreur de connexion:", error)
+    throw error
   }
+}
 
-  async buyCar(carId: number, prix: string): Promise<ethers.ContractTransactionResponse> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    const priceInWei = ethers.parseEther(prix)
-    return await this.contract.buyCar(carId, { value: priceInWei })
+async function detectUserRole(account: string, contract: ethers.Contract): Promise<"constructor" | "user"> {
+  try {
+    // Vérifier si l'utilisateur est un constructeur certifié
+    const isConstructor = await contract.isConstructor(account)
+    if (isConstructor) {
+      return "constructor"
+    }
+
+    // Tous les autres utilisateurs sont des utilisateurs normaux
+    return "user"
+  } catch (error) {
+    console.error("Erreur de détection du rôle:", error)
+    // Par défaut, considérer comme utilisateur normal
+    return "user"
   }
+}
 
-  async getCar(carId: number): Promise<Car> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    const result = await this.contract.getCar(carId)
+export async function createCar(
+  contract: ethers.Contract,
+  vin: string,
+  marque: string,
+  modele: string,
+): Promise<number> {
+  try {
+    const tx = await contract.createCar(vin, marque, modele)
+    const receipt = await tx.wait()
+
+    // Extraire l'ID du véhicule depuis les événements
+    const event = receipt.logs.find((log: any) => {
+      try {
+        const parsed = contract.interface.parseLog(log)
+        return parsed?.name === "CarCreated"
+      } catch {
+        return false
+      }
+    })
+
+    if (event) {
+      const parsed = contract.interface.parseLog(event)
+      return Number(parsed?.args[0])
+    }
+
+    throw new Error("Impossible de récupérer l'ID du véhicule créé")
+  } catch (error) {
+    console.error("Erreur lors de la création:", error)
+    throw error
+  }
+}
+
+export async function putCarForSale(contract: ethers.Contract, carId: number, priceInEth: string): Promise<void> {
+  try {
+    const priceInWei = ethers.parseEther(priceInEth)
+    const tx = await contract.putCarForSale(carId, priceInWei)
+    await tx.wait()
+  } catch (error) {
+    console.error("Erreur lors de la mise en vente:", error)
+    throw error
+  }
+}
+
+export async function buyCar(contract: ethers.Contract, carId: number, priceInWei: string): Promise<void> {
+  try {
+    const tx = await contract.buyCar(carId, { value: priceInWei })
+    await tx.wait()
+  } catch (error) {
+    console.error("Erreur lors de l'achat:", error)
+    throw error
+  }
+}
+
+export async function getCar(contract: ethers.Contract, carId: number): Promise<Car> {
+  try {
+    const result = await contract.getCar(carId)
+    const history = await contract.getCarHistory(carId)
+
     return {
       id: Number(result[0]),
       vin: result[1],
       marque: result[2],
       modele: result[3],
       enVente: result[4],
-      prix: ethers.formatEther(result[5]),
+      prix: result[5].toString(),
+      proprietaires: history,
     }
-  }
-
-  async getCarsForSale(): Promise<number[]> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    const result = await this.contract.getCarsForSale()
-    return result.map((id: bigint) => Number(id))
-  }
-
-  async getCarHistory(carId: number): Promise<string[]> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    return await this.contract.getCarHistory(carId)
-  }
-
-  async ownerOf(carId: number): Promise<string> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    return await this.contract.ownerOf(carId)
-  }
-
-  async getNextCarId(): Promise<number> {
-    if (!this.contract) throw new Error("Contrat non initialisé")
-    const result = await this.contract.nextCarId()
-    return Number(result)
+  } catch (error) {
+    console.error("Erreur lors de la récupération du véhicule:", error)
+    throw error
   }
 }
 
-export const web3Service = new Web3Service()
+export async function getCarsForSale(contract: ethers.Contract): Promise<Car[]> {
+  try {
+    const carIds = await contract.getCarsForSale()
+    const cars: Car[] = []
+
+    for (const carId of carIds) {
+      try {
+        const car = await getCar(contract, Number(carId))
+        cars.push(car)
+      } catch (error) {
+        console.error(`Erreur lors de la récupération du véhicule ${carId}:`, error)
+      }
+    }
+
+    return cars
+  } catch (error) {
+    console.error("Erreur lors de la récupération des véhicules en vente:", error)
+    throw error
+  }
+}
+
+export async function getUserCars(contract: ethers.Contract, userAccount: string): Promise<Car[]> {
+  try {
+    const nextCarId = await contract.nextCarId()
+    const userCars: Car[] = []
+
+    for (let i = 1; i < nextCarId; i++) {
+      try {
+        const owner = await contract.ownerOf(i)
+        if (owner.toLowerCase() === userAccount.toLowerCase()) {
+          const car = await getCar(contract, i)
+          userCars.push(car)
+        }
+      } catch (error) {
+        // Véhicule peut ne pas exister, continuer
+        continue
+      }
+    }
+
+    return userCars
+  } catch (error) {
+    console.error("Erreur lors de la récupération des véhicules de l'utilisateur:", error)
+    throw error
+  }
+}
+
+export async function cancelSale(contract: ethers.Contract, carId: number): Promise<void> {
+  try {
+    const tx = await contract.cancelSale(carId)
+    await tx.wait()
+  } catch (error) {
+    console.error("Erreur lors de l'annulation de la vente:", error)
+    throw error
+  }
+}
+
+export async function getAllCars(contract: ethers.Contract): Promise<Car[]> {
+  try {
+    const nextCarId = await contract.nextCarId()
+    const allCars: Car[] = []
+
+    for (let i = 1; i < nextCarId; i++) {
+      try {
+        const car = await getCar(contract, i)
+        allCars.push(car)
+      } catch (error) {
+        // Véhicule peut ne pas exister, continuer
+        continue
+      }
+    }
+
+    return allCars
+  } catch (error) {
+    console.error("Erreur lors de la récupération de tous les véhicules:", error)
+    throw error
+  }
+}
+
+export async function isAdmin(contract: ethers.Contract, userAccount: string): Promise<boolean> {
+  try {
+    const adminAddress = await contract.admin()
+    return adminAddress.toLowerCase() === userAccount.toLowerCase()
+  } catch (error) {
+    console.error("Erreur lors de la vérification admin:", error)
+    return false
+  }
+}
+
+export function formatEther(wei: string): string {
+  try {
+    return ethers.formatEther(wei)
+  } catch (error) {
+    console.error("Erreur de formatage:", error)
+    return "0"
+  }
+}
+
+export function parseEther(ether: string): string {
+  try {
+    return ethers.parseEther(ether).toString()
+  } catch (error) {
+    console.error("Erreur de parsing:", error)
+    return "0"
+  }
+}
+
+export function shortenAddress(address: string): string {
+  if (!address) return ""
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+// Hook pour écouter les événements du contrat
+export function setupContractListeners(contract: ethers.Contract, callback: (event: any) => void) {
+  // Écouter les événements de création de véhicule
+  contract.on("CarCreated", (carId, creator, vin, event) => {
+    callback({
+      type: "CarCreated",
+      carId: Number(carId),
+      creator,
+      vin,
+      event,
+    })
+  })
+
+  // Écouter les événements de mise en vente
+  contract.on("CarListed", (carId, seller, price, event) => {
+    callback({
+      type: "CarListed",
+      carId: Number(carId),
+      seller,
+      price: price.toString(),
+      event,
+    })
+  })
+
+  // Écouter les événements de vente
+  contract.on("CarSold", (carId, seller, buyer, price, event) => {
+    callback({
+      type: "CarSold",
+      carId: Number(carId),
+      seller,
+      buyer,
+      price: price.toString(),
+      event,
+    })
+  })
+
+  // Écouter les événements d'ajout de constructeur
+  contract.on("ConstructorAdded", (ctor, event) => {
+    callback({
+      type: "ConstructorAdded",
+      constructor: ctor,
+      event,
+    })
+  })
+
+  // Écouter les événements de suppression de constructeur
+  contract.on("ConstructorRemoved", (ctor, event) => {
+    callback({
+      type: "ConstructorRemoved",
+      constructor: ctor,
+      event,
+    })
+  })
+
+  // Fonction de nettoyage
+  return () => {
+    contract.removeAllListeners()
+  }
+}
+
+// Vérifier si MetaMask est installé
+export function isMetaMaskInstalled(): boolean {
+  return typeof window !== "undefined" && typeof window.ethereum !== "undefined"
+}
+
+// Demander à l'utilisateur d'ajouter le réseau Ethereum (si nécessaire)
+export async function switchToLocalNetwork(): Promise<void> {
+  if (!window.ethereum) return
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x539" }], // Ganache default chain ID (1337)
+    })
+  } catch (error: any) {
+    // Si le réseau n'est pas ajouté, le proposer
+    if (error.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0x539",
+            chainName: "Ganache Local",
+            nativeCurrency: {
+              name: "Ether",
+              symbol: "ETH",
+              decimals: 18,
+            },
+            rpcUrls: ["http://127.0.0.1:7545"],
+            blockExplorerUrls: null,
+          },
+        ],
+      })
+    }
+  }
+}
+
+export async function switchToGanacheNetwork(): Promise<void> {
+  if (!window.ethereum) return
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x539" }], // 1337 en hexadécimal
+    })
+  } catch (error: any) {
+    // Si le réseau n'est pas ajouté, le proposer
+    if (error.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0x539",
+            chainName: "Ganache Local",
+            nativeCurrency: {
+              name: "Ether",
+              symbol: "ETH",
+              decimals: 18,
+            },
+            rpcUrls: ["http://127.0.0.1:7545"],
+            blockExplorerUrls: [],
+          },
+        ],
+      })
+    }
+  }
+}
+
+export async function switchToSepoliaNetwork(): Promise<void> {
+  if (!window.ethereum) return
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0xaa36a7" }], // 11155111 en hexadécimal
+    })
+  } catch (error: any) {
+    if (error.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0xaa36a7",
+            chainName: "Sepolia Testnet",
+            nativeCurrency: {
+              name: "Sepolia Ether",
+              symbol: "ETH",
+              decimals: 18,
+            },
+            rpcUrls: ["https://sepolia.infura.io/v3/YOUR_INFURA_KEY"],
+            blockExplorerUrls: ["https://sepolia.etherscan.io"],
+          },
+        ],
+      })
+    }
+  }
+}
+
+export async function getCurrentNetwork(): Promise<{ chainId: number; name: string; isSupported: boolean }> {
+  if (!window.ethereum) {
+    throw new Error("MetaMask non détecté")
+  }
+
+  const provider = new ethers.BrowserProvider(window.ethereum)
+  const network = await provider.getNetwork()
+  const chainId = Number(network.chainId)
+
+  let name = "Réseau inconnu"
+  let isSupported = false
+
+  switch (chainId) {
+    case 1337:
+      name = "Ganache Local"
+      isSupported = true
+      break
+    case 11155111:
+      name = "Sepolia Testnet"
+      isSupported = true
+      break
+    default:
+      name = `Réseau personnalisé (${chainId})`
+      isSupported = false
+  }
+
+  return { chainId, name, isSupported }
+}
+
+export async function getBalance(provider: ethers.BrowserProvider, address: string): Promise<string> {
+  try {
+    const balance = await provider.getBalance(address)
+    return ethers.formatEther(balance)
+  } catch (error) {
+    console.error("Erreur lors de la récupération du solde:", error)
+    return "0"
+  }
+}
+
+export function handleBlockchainError(error: any): string {
+  if (error.code === 4001) {
+    return "Transaction rejetée par l'utilisateur"
+  }
+
+  if (error.code === -32603) {
+    return "Erreur interne de la blockchain"
+  }
+
+  if (error.message?.includes("insufficient funds")) {
+    return "Fonds insuffisants pour cette transaction"
+  }
+
+  if (error.message?.includes("execution reverted")) {
+    // Extraire le message d'erreur du smart contract
+    const revertReason = error.message.match(/reverted with reason string '(.*)'/)?.[1]
+    if (revertReason) {
+      return revertReason
+    }
+    return "Transaction échouée : vérifiez les conditions du smart contract"
+  }
+
+  if (error.message?.includes("user rejected")) {
+    return "Transaction annulée par l'utilisateur"
+  }
+
+  return error.message || "Erreur inconnue lors de la transaction"
+}
