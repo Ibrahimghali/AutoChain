@@ -1,16 +1,14 @@
 # AutoChain - Configuration et Déploiement des Constructeurs
 
-**AutoChain** - Révolutionnez la vente automobile avec la blockchain ! 🚗⛓️
-
 ---
 
-## 🚀 Vue d'ensemble
+## Vue d'ensemble
 
 AutoChain est une application décentralisée (DApp) de gestion de véhicules sur blockchain. Ce README explique comment configurer et certifier les constructeurs automobiles dans le système.
 
 ---
 
-## 📋 Prérequis
+## Prérequis
 
 - Node.js v16 ou supérieur
 - npm ou yarn
@@ -20,36 +18,36 @@ AutoChain est une application décentralisée (DApp) de gestion de véhicules su
 
 ---
 
-## 🚀 Fonctionnalités
+## Fonctionnalités
 
-### 🔐 Authentification MetaMask
+### Authentification MetaMask
 - Connexion sécurisée via MetaMask
 - Détection automatique du rôle utilisateur (Constructeur, Vendeur, Acheteur)
 - Gestion des permissions basée sur les rôles
 
-### 🏗️ Pour les Constructeurs
+### Pour les Constructeurs
 - Création et certification de nouveaux véhicules
 - Enregistrement des données techniques sur la blockchain
 - Gestion des véhicules certifiés
 
-### 💰 Pour les Vendeurs/Propriétaires
+### Pour les Vendeurs/Propriétaires
 - Mise en vente de véhicules possédés
 - Définition des prix en ETH
 - Gestion du portefeuille de véhicules
 
-### 🛒 Pour les Acheteurs
+### Pour les Acheteurs
 - Navigation et recherche de véhicules disponibles
 - Achat sécurisé via smart contracts
 - Vérification de l'historique complet
 
-### 📊 Traçabilité Complète
+### Traçabilité Complète
 - Historique transparent de tous les propriétaires
 - Certification constructeur vérifiable
 - Transactions immuables sur la blockchain
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### 1. Installation
 
@@ -119,7 +117,7 @@ NEXT_PUBLIC_CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BM
 
 ---
 
-## 🛠️ Technologies Utilisées
+## Technologies Utilisées
 
 - **Frontend**: Next.js 14, React 19, TypeScript
 - **Styling**: Tailwind CSS v4, Radix UI
@@ -129,7 +127,7 @@ NEXT_PUBLIC_CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BM
 
 ---
 
-## 🎨 Design
+## Design
 
 Interface moderne avec thème sombre professionnel inspiré des plateformes blockchain :
 
@@ -140,7 +138,7 @@ Interface moderne avec thème sombre professionnel inspiré des plateformes bloc
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 app/
@@ -171,7 +169,7 @@ hooks/
 
 ---
 
-## 🚀 Démarrage Rapide
+## Démarrage Rapide
 
 1. **Installation des dépendances**
 
@@ -200,7 +198,7 @@ hooks/
 
 ---
 
-## 🏗️ Certification des Constructeurs
+## Certification des Constructeurs
 
 ### Méthode Automatique (Recommandée)
 
@@ -211,55 +209,55 @@ node scripts/setup-constructors.js
 ```
 
 Ce script va :
-1. ✅ Valider la configuration depuis `.env`
-2. 🔗 Se connecter au réseau blockchain
-3. 📋 Initialiser le contrat AutoChain
-4. 🏗️ Certifier tous les constructeurs listés
-5. 📊 Afficher un résumé des certifications
+1. Valider la configuration depuis `.env`
+2. Se connecter au réseau blockchain
+3. Initialiser le contrat AutoChain
+4. Certifier tous les constructeurs listés
+5. Afficher un résumé des certifications
 
 #### Exemple de sortie
 
 ```
-🚀 AutoChain Constructor Setup
+AutoChain Constructor Setup
 ==============================
-🔍 Validation de la configuration...
-✅ Configuration valide
-📡 Réseau: Ganache Local (http://127.0.0.1:7545)
-📋 Contrat: 0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A
-👤 Constructeurs à certifier: 2
+Validation de la configuration...
+Configuration valide
+Réseau: Ganache Local (http://127.0.0.1:7545)
+Contrat: 0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A
+Constructeurs à certifier: 2
 
-🔗 Connexion au réseau...
-✅ Connecté au réseau Chain ID: 1337
+Connexion au réseau...
+Connecté au réseau Chain ID: 1337
 
-📋 Initialisation du contrat...
-👤 Admin du contrat: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
-🔑 Adresse du wallet: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
-✅ Wallet admin vérifié
+Initialisation du contrat...
+Admin du contrat: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
+Adresse du wallet: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
+Wallet admin vérifié
 
-🏗️ Certification des constructeurs...
-📝 Traitement: Tesla (0x2f609e0c31ad4f3ee42ebef47cf347d198dee998)
-🔄 Certification de Tesla...
-📤 Transaction envoyée: 0xabc123...
-✅ Tesla certifié avec succès! Block: 15432
-✅ Vérification: Tesla est maintenant certifié
+Certification des constructeurs...
+Traitement: Tesla (0x2f609e0c31ad4f3ee42ebef47cf347d198dee998)
+Certification de Tesla...
+Transaction envoyée: 0xabc123...
+Tesla certifié avec succès! Block: 15432
+Vérification: Tesla est maintenant certifié
 
-📝 Traitement: BMW (0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa)
-🔄 Certification de BMW...
-📤 Transaction envoyée: 0xdef456...
-✅ BMW certifié avec succès! Block: 15433
-✅ Vérification: BMW est maintenant certifié
+Traitement: BMW (0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa)
+Certification de BMW...
+Transaction envoyée: 0xdef456...
+BMW certifié avec succès! Block: 15433
+Vérification: BMW est maintenant certifié
 
-📊 RÉSUMÉ FINAL
+RÉSUMÉ FINAL
 ================
-Tesla           0x2f609e0c31ad4f3ee42ebef47cf347d198dee998 ✅ CERTIFIÉ
-BMW             0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa ✅ CERTIFIÉ
+Tesla           0x2f609e0c31ad4f3ee42ebef47cf347d198dee998 CERTIFIÉ
+BMW             0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa CERTIFIÉ
 
-🎉 Script terminé!
+Script terminé!
 ```
 
 ---
 
-## 🔧 Ajout de Nouveaux Constructeurs
+## Ajout de Nouveaux Constructeurs
 
 ### 1. Modifier le fichier .env
 
@@ -291,16 +289,16 @@ npm run dev
 
 ---
 
-## 🎨 Personnalisation de l'Interface
+## Personnalisation de l'Interface
 
 L'interface utilise des couleurs automatiques pour chaque constructeur. L'ordre des couleurs :
 
-1. 🔴 Rouge (Tesla par défaut)
-2. 🔵 Bleu (BMW par défaut)  
-3. 🟢 Vert (Mercedes)
-4. 🟣 Violet
-5. 🟠 Orange
-6. 🩵 Cyan
+1. Rouge (Tesla par défaut)
+2. Bleu (BMW par défaut)
+3. Vert (Mercedes)
+4. Violet
+5. Orange
+6. Cyan
 
 Les logos doivent être placés dans `/public/` avec le format : `{nom-constructeur}-logo.png`
 
@@ -311,19 +309,19 @@ Exemple :
 
 ---
 
-## 🛠️ Résolution des Problèmes
+## Résolution des Problèmes
 
 ### Erreur "Wallet n'est pas l'admin"
 
 ```
-❌ Ce wallet n'est pas l'admin du contrat
+Ce wallet n'est pas l'admin du contrat
 ```
 **Solution :** Vérifiez que `ADMIN_PRIVATE_KEY` correspond bien à l'admin du contrat.
 
 ### Erreur de connexion réseau
 
 ```
-❌ Impossible de se connecter au réseau
+Impossible de se connecter au réseau
 ```
 **Solutions :**
 1. Vérifiez que Ganache est démarré
@@ -333,7 +331,7 @@ Exemple :
 ### Erreur "Configuration invalide"
 
 ```
-❌ Erreurs de configuration:
+Erreurs de configuration:
    - CONSTRUCTOR_NAMES doit avoir le même nombre d'éléments que CONSTRUCTOR_ADDRESSES
 ```
 **Solution :** Assurez-vous que tous les tableaux (addresses, names, descriptions) ont le même nombre d'éléments.
@@ -347,7 +345,7 @@ Exemple :
 
 ---
 
-## 📚 Structure des Fichiers
+## Structure des Fichiers
 
 ```
 autochain-dapp/
@@ -365,7 +363,7 @@ autochain-dapp/
 
 ---
 
-## 🚀 Démarrage de l'Application
+## Démarrage de l'Application
 
 Une fois la configuration terminée :
 
@@ -376,48 +374,19 @@ npm run dev
 # Ouvrir dans le navigateur
 # http://localhost:3000
 ```
+---
+
+## Notes Importantes
+
+- Ne jamais commiter le fichier `.env` (il contient des clés privées)
+- Toujours utiliser `.env.example` comme modèle
+- Garder les clés privées sécurisées
+- Redémarrer l'app après modification du `.env`
+- Les variables `NEXT_PUBLIC_*` sont visibles côté client
 
 ---
 
-## 👥 Support Multi-Client
-
-Pour que différents clients puissent tester avec leurs propres données :
-
-1. **Chaque client** doit avoir son propre fichier `.env`
-2. **Chaque client** doit déployer son propre contrat AutoChain ou utiliser le même avec des constructeurs différents
-3. **Chaque client** doit avoir la clé privée admin du contrat qu'il utilise
-
-### Exemple pour un nouveau client
-
-```bash
-# 1. Copier la configuration d'exemple
-cp .env.example .env
-
-# 2. Modifier avec ses valeurs
-# NEXT_PUBLIC_CONTRACT_ADDRESS=0xSON_ADRESSE_CONTRAT
-# ADMIN_PRIVATE_KEY=0xSA_CLE_PRIVEE_ADMIN
-# CONSTRUCTOR_ADDRESSES=0xSES_CONSTRUCTEURS
-
-# 3. Certifier ses constructeurs  
-node scripts/setup-constructors.js
-
-# 4. Démarrer l'application
-npm run dev
-```
-
----
-
-## 📝 Notes Importantes
-
-- ⚠️ **Ne jamais commiter le fichier `.env`** (il contient des clés privées)
-- ✅ **Toujours utiliser `.env.example`** comme modèle
-- 🔒 **Garder les clés privées sécurisées**
-- 🔄 **Redémarrer l'app après modification du `.env`**
-- 📱 **Les variables `NEXT_PUBLIC_*` sont visibles côté client**
-
----
-
-## 🎯 Résumé Rapide
+## Résumé Rapide
 
 1. `cp .env.example .env`
 2. Modifier `.env` avec vos valeurs
@@ -425,11 +394,9 @@ npm run dev
 4. `npm run dev`
 5. Ouvrir http://localhost:3000
 
-**C'est tout ! Votre AutoChain est prêt ! 🎉**
-
 ---
 
-## 🎯 Roadmap
+## Roadmap
 
 - [ ] Intégration IPFS pour les images de véhicules
 - [ ] Support multi-chaînes (Polygon, BSC)
@@ -439,7 +406,7 @@ npm run dev
 
 ---
 
-## 🤝 Contribution
+## Contribution
 
 Les contributions sont les bienvenues ! Veuillez :
 
@@ -451,16 +418,17 @@ Les contributions sont les bienvenues ! Veuillez :
 
 ---
 
-## 📄 Licence
+## Licence
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+Ce projet est sous licence MIT.
 
 ---
 
-## 🆘 Support
+## Support
 
 Pour toute question ou problème :
 
 - Ouvrir une issue sur GitHub
-- Contacter l'équipe AutoChain
 - Consulter la documentation technique
+- Nous contacter par email : [ibrahim.elghali@outlook.com](mailto:ibrahim.elghali@outlook.com), [hamzazarai11@gmail.com](mailto:hamzazarai11@gmail.com), ou [fbouattour.2001@gmail.com](mailto:fbouattour.2001@gmail.com)
+
