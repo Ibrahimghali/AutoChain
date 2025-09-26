@@ -1,303 +1,272 @@
-# AutoChain - Configuration et Déploiement des Constructeurs# AutoChain - Configuration et Déploiement des Constructeurs
+# AutoChain - Configuration et Déploiement des Constructeurs
 
+**AutoChain** - Révolutionnez la vente automobile avec la blockchain ! 🚗⛓️
 
+---
 
-## 🚀 Vue d'ensemble## 🚀 Vue d'ensemble
+## 🚀 Vue d'ensemble
 
+AutoChain est une application décentralisée (DApp) de gestion de véhicules sur blockchain. Ce README explique comment configurer et certifier les constructeurs automobiles dans le système.
 
+---
 
-AutoChain est une application décentralisée (DApp) de gestion de véhicules sur blockchain. Ce README explique comment configurer et certifier les constructeurs automobiles dans le système.AutoChain est une application décentralisée (DApp) de gestion de véhicules sur blockchain. Ce README explique comment configurer et certifier les constructeurs automobiles dans le système.
+## 📋 Prérequis
 
-
-
-## 📋 Prérequis## 🚀 Fonctionnalités
-
-
-
-- Node.js v16 ou supérieur### 🔐 Authentification MetaMask
-
-- npm ou yarn- Connexion sécurisée via MetaMask
-
-- Ganache ou un autre réseau Ethereum- Détection automatique du rôle utilisateur (Constructeur, Vendeur, Acheteur)
-
-- Contrat AutoChain déployé- Gestion des permissions basée sur les rôles
-
+- Node.js v16 ou supérieur
+- npm ou yarn
+- Ganache ou un autre réseau Ethereum
+- Contrat AutoChain déployé
 - Clé privée de l'administrateur du contrat
 
+---
+
+## 🚀 Fonctionnalités
+
+### 🔐 Authentification MetaMask
+- Connexion sécurisée via MetaMask
+- Détection automatique du rôle utilisateur (Constructeur, Vendeur, Acheteur)
+- Gestion des permissions basée sur les rôles
+
 ### 🏗️ Pour les Constructeurs
-
-## ⚙️ Configuration- Création et certification de nouveaux véhicules
-
+- Création et certification de nouveaux véhicules
 - Enregistrement des données techniques sur la blockchain
+- Gestion des véhicules certifiés
 
-### 1. Installation- Gestion des véhicules certifiés
-
-
-
-```bash### 💰 Pour les Vendeurs/Propriétaires
-
-# Cloner le projet et installer les dépendances- Mise en vente de véhicules possédés
-
-npm install- Définition des prix en ETH
-
+### 💰 Pour les Vendeurs/Propriétaires
+- Mise en vente de véhicules possédés
+- Définition des prix en ETH
 - Gestion du portefeuille de véhicules
 
-# Installer dotenv pour les scripts
-
-npm install dotenv### 🛒 Pour les Acheteurs
-
-```- Navigation et recherche de véhicules disponibles
-
+### 🛒 Pour les Acheteurs
+- Navigation et recherche de véhicules disponibles
 - Achat sécurisé via smart contracts
+- Vérification de l'historique complet
 
-### 2. Configuration des variables d'environnement- Vérification de l'historique complet
-
-
-
-Copiez le fichier d'exemple et configurez vos variables :### 📊 Traçabilité Complète
-
+### 📊 Traçabilité Complète
 - Historique transparent de tous les propriétaires
+- Certification constructeur vérifiable
+- Transactions immuables sur la blockchain
 
-```bash- Certification constructeur vérifiable
+---
 
-cp .env.example .env- Transactions immuables sur la blockchain
+## ⚙️ Configuration
 
+### 1. Installation
+
+```bash
+# Cloner le projet et installer les dépendances
+npm install
+
+# Installer dotenv pour les scripts
+npm install dotenv
 ```
 
-## 🛠️ Technologies Utilisées
+### 2. Configuration des variables d'environnement
+
+Copiez le fichier d'exemple et configurez vos variables :
+
+```bash
+cp .env.example .env
+```
 
 Éditez le fichier `.env` avec vos valeurs :
 
-- **Frontend**: Next.js 14, React 19, TypeScript
-
-```env- **Styling**: Tailwind CSS v4, Radix UI
-
-# ================================- **Blockchain**: Ethereum, Ethers.js v6
-
-# BLOCKCHAIN NETWORK CONFIGURATION  - **Wallet**: MetaMask Integration
-
-# ================================- **UI/UX**: Shadcn/ui, Lucide Icons
-
+```env
+# ================================
+# BLOCKCHAIN NETWORK CONFIGURATION
+# ================================
 NEXT_PUBLIC_NETWORK_NAME=Ganache Local
-
-NEXT_PUBLIC_RPC_URL=http://127.0.0.1:7545## 🎨 Design
-
+NEXT_PUBLIC_RPC_URL=http://127.0.0.1:7545
 NEXT_PUBLIC_CHAIN_ID=1337
+
+# ================================
+# SMART CONTRACT CONFIGURATION
+# ================================
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A
+
+# ================================
+# ADMIN CONFIGURATION
+# ================================
+ADMIN_PRIVATE_KEY=0x882f783cfe5181d8174aed29d7803499b5200f3cd867f848c91e26f4c112d328
+
+# ================================
+# CONSTRUCTORS CONFIGURATION
+# ================================
+CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa
+CONSTRUCTOR_NAMES=Tesla,BMW
+CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BMW officiel
+
+# Client-side (pour l'interface)
+NEXT_PUBLIC_CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa
+NEXT_PUBLIC_CONSTRUCTOR_NAMES=Tesla,BMW
+NEXT_PUBLIC_CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BMW officiel
+```
+
+### 3. Variables d'environnement expliquées
+
+| Variable | Description | Exemple |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_NETWORK_NAME` | Nom du réseau blockchain | `Ganache Local` |
+| `NEXT_PUBLIC_RPC_URL` | URL du noeud RPC | `http://127.0.0.1:7545` |
+| `NEXT_PUBLIC_CHAIN_ID` | ID de la chaîne blockchain | `1337` |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Adresse du contrat AutoChain | `0x8E30...` |
+| `ADMIN_PRIVATE_KEY` | Clé privée de l'admin du contrat | `0x882f...` |
+| `CONSTRUCTOR_ADDRESSES` | Adresses des constructeurs (serveur) | `0x2f60...,0x3909...` |
+| `CONSTRUCTOR_NAMES` | Noms des constructeurs | `Tesla,BMW` |
+| `CONSTRUCTOR_DESCRIPTIONS` | Descriptions des constructeurs | `Constructeur Tesla officiel,Constructeur BMW officiel` |
+| `NEXT_PUBLIC_CONSTRUCTOR_*` | Versions client des variables constructeurs | Mêmes valeurs que les versions serveur |
+
+---
+
+## 🛠️ Technologies Utilisées
+
+- **Frontend**: Next.js 14, React 19, TypeScript
+- **Styling**: Tailwind CSS v4, Radix UI
+- **Blockchain**: Ethereum, Ethers.js v6
+- **Wallet**: MetaMask Integration
+- **UI/UX**: Shadcn/ui, Lucide Icons
+
+---
+
+## 🎨 Design
 
 Interface moderne avec thème sombre professionnel inspiré des plateformes blockchain :
 
-# ================================- Palette de couleurs : Bleu/Violet primaire, Vert accent
+- Palette de couleurs : Bleu/Violet primaire, Vert accent
+- Animations fluides et effets de survol
+- Design responsive et accessible
+- Grille blockchain animée en arrière-plan
 
-# SMART CONTRACT CONFIGURATION- Animations fluides et effets de survol
+---
 
-# ================================- Design responsive et accessible
+## 🏗️ Architecture
 
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A- Grille blockchain animée en arrière-plan
-
-
-
-# ================================## 🏗️ Architecture
-
-# ADMIN CONFIGURATION
-
-# ================================\`\`\`
-
-ADMIN_PRIVATE_KEY=0x882f783cfe5181d8174aed29d7803499b5200f3cd867f848c91e26f4c112d328app/
-
+```
+app/
 ├── page.tsx                 # Page d'accueil avec connexion MetaMask
+├── dashboard/               # Tableau de bord principal
+├── create-car/              # Création de véhicule (Constructeurs)
+├── sell-car/                # Mise en vente (Propriétaires)
+├── buy-car/                 # Achat de véhicules (Acheteurs)
+├── car/[id]/                # Détails d'un véhicule
+├── history/                 # Historique global des transactions
+└── layout.tsx               # Layout principal avec providers
 
-# ================================├── dashboard/               # Tableau de bord principal
+components/
+├── navigation.tsx           # Navigation responsive avec rôles
+├── car-card.tsx             # Carte de véhicule avec actions
+├── stats-overview.tsx       # Statistiques du tableau de bord
+├── blockchain-status.tsx    # Statut de connexion blockchain
+├── error-boundary.tsx       # Gestion d'erreurs
+└── ui/                      # Composants UI réutilisables
 
-# CONSTRUCTORS CONFIGURATION├── create-car/             # Création de véhicule (Constructeurs)
+lib/
+├── web3.ts                  # Utilitaires Web3 et types
+└── utils.ts                 # Utilitaires généraux
 
-# ================================├── sell-car/               # Mise en vente (Propriétaires)
+hooks/
+└── use-web3.ts              # Hook personnalisé Web3
+```
 
-# Server-side (pour les scripts)├── buy-car/                # Achat de véhicules (Acheteurs)
+---
 
-CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa├── car/[id]/               # Détails d'un véhicule
+## 🚀 Démarrage Rapide
 
-CONSTRUCTOR_NAMES=Tesla,BMW├── history/                # Historique global des transactions
+1. **Installation des dépendances**
 
-CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BMW officiel└── layout.tsx              # Layout principal avec providers
+   ```bash
+   npm install
+   ```
 
+2. **Configuration MetaMask**
+   - Installer l'extension MetaMask
+   - Se connecter à un réseau Ethereum (Mainnet, Sepolia, etc.)
+   - Avoir des ETH pour les transactions
 
+3. **Déploiement du Smart Contract**
+   - Déployer le contrat `AutoChain.sol` sur le réseau choisi
 
-# Client-side (pour l'interface)components/
+4. **Lancement de l'application**
 
-NEXT_PUBLIC_CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa├── navigation.tsx          # Navigation responsive avec rôles
+   ```bash
+   npm run dev
+   ```
 
-NEXT_PUBLIC_CONSTRUCTOR_NAMES=Tesla,BMW├── car-card.tsx           # Carte de véhicule avec actions
+5. **Accès à l'application**
+   - Ouvrir http://localhost:3000
+   - Connecter MetaMask
+   - Commencer à utiliser AutoChain !
 
-NEXT_PUBLIC_CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BMW officiel├── stats-overview.tsx     # Statistiques du tableau de bord
+---
 
-```├── blockchain-status.tsx  # Statut de connexion blockchain
-
-├── error-boundary.tsx     # Gestion d'erreurs
-
-### 3. Variables d'environnement expliquées└── ui/                    # Composants UI réutilisables
-
-
-
-| Variable | Description | Exemple |lib/
-
-|----------|-------------|---------|├── web3.ts               # Utilitaires Web3 et types
-
-| `NEXT_PUBLIC_NETWORK_NAME` | Nom du réseau blockchain | `Ganache Local` |└── utils.ts              # Utilitaires généraux
-
-| `NEXT_PUBLIC_RPC_URL` | URL du noeud RPC | `http://127.0.0.1:7545` |
-
-| `NEXT_PUBLIC_CHAIN_ID` | ID de la chaîne blockchain | `1337` |hooks/
-
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Adresse du contrat AutoChain | `0x8E30...` |└── use-web3.ts           # Hook personnalisé Web3
-
-| `ADMIN_PRIVATE_KEY` | Clé privée de l'admin du contrat | `0x882f...` |\`\`\`
-
-| `CONSTRUCTOR_ADDRESSES` | Adresses des constructeurs (serveur) | `0x2f60...,0x3909...` |
-
-| `CONSTRUCTOR_NAMES` | Noms des constructeurs | `Tesla,BMW` |## 🚀 Démarrage Rapide
-
-| `CONSTRUCTOR_DESCRIPTIONS` | Descriptions des constructeurs | `Constructeur Tesla officiel,Constructeur BMW officiel` |
-
-| `NEXT_PUBLIC_CONSTRUCTOR_*` | Versions client des variables constructeurs | Mêmes valeurs que les versions serveur |1. **Installation des dépendances**
-
-   \`\`\`bash
-
-## 🏗️ Certification des Constructeurs   npm install
-
-   \`\`\`
+## 🏗️ Certification des Constructeurs
 
 ### Méthode Automatique (Recommandée)
 
-2. **Configuration MetaMask**
+Utilisez le script de configuration automatique :
 
-Utilisez le script de configuration automatique :   - Installer l'extension MetaMask
-
-   - Se connecter à un réseau Ethereum (Mainnet, Sepolia, etc.)
-
-```bash   - Avoir des ETH pour les transactions
-
+```bash
 node scripts/setup-constructors.js
-
-```3. **Déploiement du Smart Contract**
-
-   - Déployer le contrat `AutoChain.sol` sur le réseau choisi
-
-Ce script va :   - Mettre à jour l'adresse du contrat dans `lib/web3.ts`
-
-1. ✅ Valider la configuration depuis `.env`
-
-2. 🔗 Se connecter au réseau blockchain4. **Lancement de l'application**
-
-3. 📋 Initialiser le contrat AutoChain   \`\`\`bash
-
-4. 🏗️ Certifier tous les constructeurs listés   npm run dev
-
-5. 📊 Afficher un résumé des certifications   \`\`\`
-
-
-
-### Exemple de sortie5. **Accès à l'application**
-
-   - Ouvrir http://localhost:3000
-
-```   - Connecter MetaMask
-
-🚀 AutoChain Constructor Setup   - Commencer à utiliser AutoChain !
-
-==============================
-
-## 🔧 Configuration
-
-🔍 Validation de la configuration...
-
-✅ Configuration valide### Variables d'environnement
-
-📡 Réseau: Ganache Local (http://127.0.0.1:7545)\`\`\`env
-
-📋 Contrat: 0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3ANEXT_PUBLIC_CONTRACT_ADDRESS=0x...
-
-👤 Constructeurs à certifier: 2NEXT_PUBLIC_NETWORK_ID=1
-
-\`\`\`
-
-🔗 Connexion au réseau...
-
-✅ Connecté au réseau Chain ID: 1337### Smart Contract
-
-Le contrat `AutoChain.sol` doit être déployé avec les fonctionnalités :
-
-📋 Initialisation du contrat...- Gestion des constructeurs certifiés
-
-👤 Admin du contrat: 0x742d35Cc6634C0532925a3b8D4C9db96590b5- Création de véhicules avec métadonnées
-
-🔑 Adresse du wallet: 0x742d35Cc6634C0532925a3b8D4C9db96590b5- Système de vente/achat sécurisé
-
-✅ Wallet admin vérifié- Historique des propriétaires
-
-
-
-🏗️ Certification des constructeurs...## 🎯 Roadmap
-
-
-
-📝 Traitement: Tesla (0x2f609e0c31ad4f3ee42ebef47cf347d198dee998)- [ ] Intégration IPFS pour les images de véhicules
-
-🔄 Certification de Tesla...- [ ] Support multi-chaînes (Polygon, BSC)
-
-📤 Transaction envoyée: 0xabc123...- [ ] Système de réputation des vendeurs
-
-✅ Tesla certifié avec succès! Block: 15432- [ ] API pour intégrations tierces
-
-✅ Vérification: Tesla est maintenant certifié- [ ] Application mobile React Native
-
-
-
-📝 Traitement: BMW (0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa)## 🤝 Contribution
-
-🔄 Certification de BMW...
-
-📤 Transaction envoyée: 0xdef456...Les contributions sont les bienvenues ! Veuillez :
-
-✅ BMW certifié avec succès! Block: 154331. Fork le projet
-
-✅ Vérification: BMW est maintenant certifié2. Créer une branche feature
-
-3. Commit vos changements
-
-📊 RÉSUMÉ FINAL4. Push vers la branche
-
-================5. Ouvrir une Pull Request
-
-Tesla           0x2f609e0c31ad4f3ee42ebef47cf347d198dee998 ✅ CERTIFIÉ
-
-BMW             0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa ✅ CERTIFIÉ## 📄 Licence
-
-
-
-🎉 Script terminé!Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
 ```
 
-## 🆘 Support
+Ce script va :
+1. ✅ Valider la configuration depuis `.env`
+2. 🔗 Se connecter au réseau blockchain
+3. 📋 Initialiser le contrat AutoChain
+4. 🏗️ Certifier tous les constructeurs listés
+5. 📊 Afficher un résumé des certifications
+
+#### Exemple de sortie
+
+```
+🚀 AutoChain Constructor Setup
+==============================
+🔍 Validation de la configuration...
+✅ Configuration valide
+📡 Réseau: Ganache Local (http://127.0.0.1:7545)
+📋 Contrat: 0x8E30414c9E14FAAC56303BAE6a045Aa20Ad65b3A
+👤 Constructeurs à certifier: 2
+
+🔗 Connexion au réseau...
+✅ Connecté au réseau Chain ID: 1337
+
+📋 Initialisation du contrat...
+👤 Admin du contrat: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
+🔑 Adresse du wallet: 0x742d35Cc6634C0532925a3b8D4C9db96590b5
+✅ Wallet admin vérifié
+
+🏗️ Certification des constructeurs...
+📝 Traitement: Tesla (0x2f609e0c31ad4f3ee42ebef47cf347d198dee998)
+🔄 Certification de Tesla...
+📤 Transaction envoyée: 0xabc123...
+✅ Tesla certifié avec succès! Block: 15432
+✅ Vérification: Tesla est maintenant certifié
+
+📝 Traitement: BMW (0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa)
+🔄 Certification de BMW...
+📤 Transaction envoyée: 0xdef456...
+✅ BMW certifié avec succès! Block: 15433
+✅ Vérification: BMW est maintenant certifié
+
+📊 RÉSUMÉ FINAL
+================
+Tesla           0x2f609e0c31ad4f3ee42ebef47cf347d198dee998 ✅ CERTIFIÉ
+BMW             0x390953dfbd34bc86c6fb9acfd137606ffa0c4baa ✅ CERTIFIÉ
+
+🎉 Script terminé!
+```
+
+---
 
 ## 🔧 Ajout de Nouveaux Constructeurs
 
-Pour toute question ou problème :
+### 1. Modifier le fichier .env
 
-### 1. Modifier le fichier .env- Ouvrir une issue sur GitHub
+Ajoutez les nouvelles adresses, noms et descriptions (séparés par des virgules) :
 
-- Contacter l'équipe AutoChain
-
-Ajoutez les nouvelles adresses, noms et descriptions (séparés par des virgules) :- Consulter la documentation technique
-
-
-
-```env---
-
+```env
 # Exemple avec 3 constructeurs
-
-CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa,0x1234567890123456789012345678901234567890**AutoChain** - Révolutionnez la vente automobile avec la blockchain ! 🚗⛓️
-
+CONSTRUCTOR_ADDRESSES=0x2f609E0C31aD4f3eE42ebEF47cF347D198deE998,0x390953dfBD34bC86C6Fb9Acfd137606FfA0c4bAa,0x1234567890123456789012345678901234567890
 CONSTRUCTOR_NAMES=Tesla,BMW,Mercedes
 CONSTRUCTOR_DESCRIPTIONS=Constructeur Tesla officiel,Constructeur BMW officiel,Constructeur Mercedes officiel
 
@@ -319,6 +288,8 @@ node scripts/setup-constructors.js
 npm run dev
 ```
 
+---
+
 ## 🎨 Personnalisation de l'Interface
 
 L'interface utilise des couleurs automatiques pour chaque constructeur. L'ordre des couleurs :
@@ -337,6 +308,8 @@ Exemple :
 - `bmw-logo.png`
 - `mercedes-logo.png`
 
+---
+
 ## 🛠️ Résolution des Problèmes
 
 ### Erreur "Wallet n'est pas l'admin"
@@ -344,7 +317,6 @@ Exemple :
 ```
 ❌ Ce wallet n'est pas l'admin du contrat
 ```
-
 **Solution :** Vérifiez que `ADMIN_PRIVATE_KEY` correspond bien à l'admin du contrat.
 
 ### Erreur de connexion réseau
@@ -352,7 +324,6 @@ Exemple :
 ```
 ❌ Impossible de se connecter au réseau
 ```
-
 **Solutions :**
 1. Vérifiez que Ganache est démarré
 2. Vérifiez l'URL RPC dans `NEXT_PUBLIC_RPC_URL`
@@ -364,7 +335,6 @@ Exemple :
 ❌ Erreurs de configuration:
    - CONSTRUCTOR_NAMES doit avoir le même nombre d'éléments que CONSTRUCTOR_ADDRESSES
 ```
-
 **Solution :** Assurez-vous que tous les tableaux (addresses, names, descriptions) ont le même nombre d'éléments.
 
 ### Les constructeurs n'apparaissent pas dans l'interface
@@ -374,21 +344,25 @@ Exemple :
 2. Redémarrez l'application après modification du `.env`
 3. Vérifiez que les constructeurs sont bien certifiés avec le script
 
+---
+
 ## 📚 Structure des Fichiers
 
 ```
 autochain-dapp/
 ├── .env                    # Configuration principale
-├── .env.example           # Modèle de configuration
+├── .env.example            # Modèle de configuration
 ├── scripts/
 │   └── setup-constructors.js  # Script de certification
 ├── lib/
-│   ├── web3.ts            # Utilitaires blockchain
-│   └── constructors.ts    # Configuration constructeurs
+│   ├── web3.ts             # Utilitaires blockchain
+│   └── constructors.ts     # Configuration constructeurs
 └── public/
-    ├── tesla-logo.png     # Logos des constructeurs
+    ├── tesla-logo.png      # Logos des constructeurs
     └── bmw-logo.png
 ```
+
+---
 
 ## 🚀 Démarrage de l'Application
 
@@ -401,6 +375,8 @@ npm run dev
 # Ouvrir dans le navigateur
 # http://localhost:3000
 ```
+
+---
 
 ## 👥 Support Multi-Client
 
@@ -428,6 +404,8 @@ node scripts/setup-constructors.js
 npm run dev
 ```
 
+---
+
 ## 📝 Notes Importantes
 
 - ⚠️ **Ne jamais commiter le fichier `.env`** (il contient des clés privées)
@@ -435,6 +413,8 @@ npm run dev
 - 🔒 **Garder les clés privées sécurisées**
 - 🔄 **Redémarrer l'app après modification du `.env`**
 - 📱 **Les variables `NEXT_PUBLIC_*` sont visibles côté client**
+
+---
 
 ## 🎯 Résumé Rapide
 
@@ -445,3 +425,41 @@ npm run dev
 5. Ouvrir http://localhost:3000
 
 **C'est tout ! Votre AutoChain est prêt ! 🎉**
+
+---
+
+## 🎯 Roadmap
+
+- [ ] Intégration IPFS pour les images de véhicules
+- [ ] Support multi-chaînes (Polygon, BSC)
+- [ ] Système de réputation des vendeurs
+- [ ] API pour intégrations tierces
+- [ ] Application mobile React Native
+
+---
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Veuillez :
+
+1. Fork le projet
+2. Créer une branche feature
+3. Commit vos changements
+4. Push vers la branche
+5. Ouvrir une Pull Request
+
+---
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+---
+
+## 🆘 Support
+
+Pour toute question ou problème :
+
+- Ouvrir une issue sur GitHub
+- Contacter l'équipe AutoChain
+- Consulter la documentation technique
